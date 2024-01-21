@@ -1,7 +1,11 @@
 package com.leecrafts.bowmaster;
 
+import com.leecrafts.bowmaster.entity.ModEntityTypes;
+import com.leecrafts.bowmaster.entity.client.SkeletonBowMasterRenderer;
+import com.leecrafts.bowmaster.item.ModItems;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.entity.EntityRenderers;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.BlockItem;
@@ -65,6 +69,9 @@ public class SkeletonBowMaster
     {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
+        ModEntityTypes.register(modEventBus);
+        ModItems.register(modEventBus);
+
         // Register the commonSetup method for modloading
         modEventBus.addListener(this::commonSetup);
 
@@ -103,6 +110,9 @@ public class SkeletonBowMaster
     {
         if (event.getTabKey() == CreativeModeTabs.BUILDING_BLOCKS)
             event.accept(EXAMPLE_BLOCK_ITEM);
+        if (event.getTabKey() == CreativeModeTabs.SPAWN_EGGS) {
+            event.accept(ModItems.SKELETON_BOW_MASTER_SPAWN_EGG.get());
+        }
     }
 
     // You can use SubscribeEvent and let the Event Bus discover methods to call
@@ -123,6 +133,8 @@ public class SkeletonBowMaster
             // Some client setup code
             LOGGER.info("HELLO FROM CLIENT SETUP");
             LOGGER.info("MINECRAFT NAME >> {}", Minecraft.getInstance().getUser().getName());
+
+            EntityRenderers.register(ModEntityTypes.SKELETON_BOW_MASTER.get(), SkeletonBowMasterRenderer::new);
         }
     }
 }
