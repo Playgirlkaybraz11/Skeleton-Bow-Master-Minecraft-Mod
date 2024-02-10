@@ -3,14 +3,11 @@ package com.leecrafts.bowmaster.entity.custom;
 import com.leecrafts.bowmaster.entity.goal.AIRangedBowAttackGoal;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
-import net.minecraft.util.RandomSource;
-import net.minecraft.world.DifficultyInstance;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.monster.AbstractSkeleton;
 import net.minecraft.world.entity.monster.Monster;
@@ -18,12 +15,14 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 
 public class SkeletonBowMasterEntity extends AbstractSkeleton {
+
+    protected boolean shouldForwardImpulse = false;
+    private float reward = 0.0f;
 
     public SkeletonBowMasterEntity(EntityType<? extends AbstractSkeleton> pEntityType, Level pLevel) {
         super(pEntityType, pLevel);
@@ -42,9 +41,29 @@ public class SkeletonBowMasterEntity extends AbstractSkeleton {
     }
 
     @Override
+    public void die(@NotNull DamageSource pDamageSource) {
+        super.die(pDamageSource);
+        if (!this.level().isClientSide) {
+            System.out.println(this.reward);
+        }
+    }
+
+    @Override
     public void tick() {
         super.tick();
-        this.setZza(1.0f);
+    }
+
+    @Override
+    public void setZza(float pAmount) {
+        if ((this.shouldForwardImpulse && pAmount != 0) ||
+                (!this.shouldForwardImpulse && pAmount == 0)) {
+            super.setZza(pAmount);
+        }
+    }
+
+    public void forwardImpulse(float amount) {
+        this.setZza(amount);
+        this.shouldForwardImpulse = amount != 0;
     }
 
     @Override
@@ -70,4 +89,9 @@ public class SkeletonBowMasterEntity extends AbstractSkeleton {
         this.playSound(SoundEvents.SKELETON_SHOOT, 1.0F, 1.0F / (this.getRandom().nextFloat() * 0.4F + 0.8F));
         this.level().addFreshEntity(abstractarrow);
     }
+
+    public void increaseReward(float amount) {
+        this.reward += amount;
+    }
+
 }
