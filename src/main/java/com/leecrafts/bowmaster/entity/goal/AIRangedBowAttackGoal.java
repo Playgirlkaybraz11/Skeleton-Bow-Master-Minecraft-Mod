@@ -48,9 +48,6 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
 
     @Override
     public void tick() {
-        if (this.mob.level().isClientSide) {
-            System.out.println("clientside.");
-        }
         LivingEntity livingEntity = this.mob.getTarget();
         if (livingEntity != null) {
             RandomSource random = this.mob.getRandom();
@@ -80,8 +77,8 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
             }
 
             this.mob.lookAt(livingEntity, 360, 360);
-            this.mob.setXRot(this.mob.getXRot() + 360 * random.nextFloat());
-            this.mob.setYRot(this.mob.getYRot() + 360 * random.nextFloat());
+//            this.mob.setXRot(this.mob.getXRot() + 360 * random.nextFloat());
+//            this.mob.setYRot(this.mob.getYRot() + 360 * random.nextFloat());
 
             if (useItem) {
                 this.mob.startUsingItem(ProjectileUtil.getWeaponHoldingHand(this.mob, item -> item instanceof BowItem));

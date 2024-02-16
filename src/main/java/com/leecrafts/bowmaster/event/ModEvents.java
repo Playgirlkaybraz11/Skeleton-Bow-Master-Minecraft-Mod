@@ -4,7 +4,10 @@ import com.leecrafts.bowmaster.SkeletonBowMaster;
 import com.leecrafts.bowmaster.entity.ModEntityTypes;
 import com.leecrafts.bowmaster.entity.client.SkeletonBowMasterModel;
 import com.leecrafts.bowmaster.entity.custom.SkeletonBowMasterEntity;
+import com.leecrafts.bowmaster.world.dimension.ModDimensions;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
@@ -22,6 +25,12 @@ public class ModEvents {
             LivingEntity livingEntity = event.getEntity();
             if (!livingEntity.level().isClientSide && event.getSource().getEntity() instanceof SkeletonBowMasterEntity skeletonBowMasterEntity) {
                 skeletonBowMasterEntity.increaseReward(event.getAmount());
+                if (livingEntity instanceof Player && livingEntity.level() instanceof ServerLevel serverLevel) {
+                    ServerLevel dim = serverLevel.getServer().getLevel(ModDimensions.ARENA_LEVEL_KEY);
+                    if (dim != null) {
+                        livingEntity.changeDimension(dim);
+                    }
+                }
             }
         }
 

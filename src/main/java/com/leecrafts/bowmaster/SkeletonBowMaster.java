@@ -3,6 +3,7 @@ package com.leecrafts.bowmaster;
 import com.leecrafts.bowmaster.entity.ModEntityTypes;
 import com.leecrafts.bowmaster.entity.client.SkeletonBowMasterRenderer;
 import com.leecrafts.bowmaster.item.ModItems;
+import com.leecrafts.bowmaster.world.dimension.ModDimensions;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.entity.EntityRenderers;
@@ -71,6 +72,7 @@ public class SkeletonBowMaster
 
         ModEntityTypes.register(modEventBus);
         ModItems.register(modEventBus);
+        ModDimensions.register();
 
         // Register the commonSetup method for modloading
         modEventBus.addListener(this::commonSetup);
