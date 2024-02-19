@@ -1,15 +1,23 @@
 package com.leecrafts.bowmaster.event;
 
 import com.leecrafts.bowmaster.SkeletonBowMaster;
+import com.leecrafts.bowmaster.capability.ModCapabilities;
+import com.leecrafts.bowmaster.capability.player.IPlayerCap;
+import com.leecrafts.bowmaster.capability.player.PlayerCapProvider;
 import com.leecrafts.bowmaster.entity.ModEntityTypes;
 import com.leecrafts.bowmaster.entity.client.SkeletonBowMasterModel;
 import com.leecrafts.bowmaster.entity.custom.SkeletonBowMasterEntity;
 import com.leecrafts.bowmaster.world.dimension.ModDimensions;
+import com.leecrafts.bowmaster.world.portal.ModTeleporter;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
+import net.minecraftforge.common.capabilities.RegisterCapabilitiesEvent;
+import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -21,15 +29,27 @@ public class ModEvents {
     public static class ForgeEventBusEvents {
 
         @SubscribeEvent
+        public static void registerCapabilities(RegisterCapabilitiesEvent event) {
+            event.register(IPlayerCap.class);
+        }
+
+        @SubscribeEvent
+        public static void onAttachCapabilitiesEventPlayer(AttachCapabilitiesEvent<Entity> event) {
+            if (event.getObject() instanceof Player player && !player.getCommandSenderWorld().isClientSide) {
+                if (!player.getCapability(ModCapabilities.PLAYER_CAPABILITY).isPresent()) {
+                    PlayerCapProvider playerCapProvider = new PlayerCapProvider();
+                    event.addCapability(new ResourceLocation(SkeletonBowMaster.MODID, "player"), playerCapProvider);
+                }
+            }
+        }
+
+        @SubscribeEvent
         public static void hurtEntity(LivingHurtEvent event) {
             LivingEntity livingEntity = event.getEntity();
             if (!livingEntity.level().isClientSide && event.getSource().getEntity() instanceof SkeletonBowMasterEntity skeletonBowMasterEntity) {
                 skeletonBowMasterEntity.increaseReward(event.getAmount());
-                if (livingEntity instanceof Player && livingEntity.level() instanceof ServerLevel serverLevel) {
-                    ServerLevel dim = serverLevel.getServer().getLevel(ModDimensions.ARENA_LEVEL_KEY);
-                    if (dim != null) {
-                        livingEntity.changeDimension(dim);
-                    }
+                if (livingEntity instanceof Player player) {
+                    ModTeleporter.teleportPlayer(player);
                 }
             }
         }

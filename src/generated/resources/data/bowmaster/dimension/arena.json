@@ -8,12 +8,12 @@
       "features": false,
       "layers": [
         {
-          "block": "minecraft:smooth_stone",
-          "height": 2
-        },
-        {
           "block": "minecraft:bedrock",
           "height": 1
+        },
+        {
+          "block": "minecraft:smooth_stone",
+          "height": 2
         }
       ]
     }
