@@ -3,6 +3,7 @@ package com.leecrafts.bowmaster.event;
 import com.leecrafts.bowmaster.SkeletonBowMaster;
 import com.leecrafts.bowmaster.capability.ModCapabilities;
 import com.leecrafts.bowmaster.capability.player.IPlayerCap;
+import com.leecrafts.bowmaster.capability.player.PlayerCap;
 import com.leecrafts.bowmaster.capability.player.PlayerCapProvider;
 import com.leecrafts.bowmaster.entity.ModEntityTypes;
 import com.leecrafts.bowmaster.entity.client.SkeletonBowMasterModel;
@@ -20,6 +21,7 @@ import net.minecraftforge.common.capabilities.RegisterCapabilitiesEvent;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
@@ -52,6 +54,22 @@ public class ModEvents {
                     ModTeleporter.teleportPlayer(player);
                 }
             }
+        }
+
+        @SubscribeEvent
+        public static void onPlayerCloneEvent(PlayerEvent.Clone event) {
+            Player originalPlayer = event.getOriginal();
+            Player player = event.getEntity();
+            originalPlayer.reviveCaps();
+            originalPlayer.getCapability(ModCapabilities.PLAYER_CAPABILITY).ifPresent(iPlayerCap -> {
+                player.getCapability(ModCapabilities.PLAYER_CAPABILITY).ifPresent(iPlayerCap1 -> {
+                    PlayerCap playerCap = (PlayerCap) iPlayerCap;
+                    PlayerCap playerCap1 = (PlayerCap) iPlayerCap1;
+                    playerCap1.outsideDimBlockPos = playerCap.outsideDimBlockPos;
+                    playerCap1.arenaDimBlockPos = playerCap.arenaDimBlockPos;
+                });
+            });
+            originalPlayer.invalidateCaps();
         }
 
     }

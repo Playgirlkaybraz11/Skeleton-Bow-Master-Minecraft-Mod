@@ -41,7 +41,21 @@ public class ModTeleporter implements ITeleporter {
     @Override
     public Entity placeEntity(Entity entity, ServerLevel currentWorld, ServerLevel destWorld, float yaw, Function<Boolean, Entity> repositionEntity) {
         entity = repositionEntity.apply(false);
+//        decideDestinationPos(entity, destWorld);
+        entity.setPos(destinationPos.getX(), destinationPos.getY(), destinationPos.getZ()); // I am not sure if this line is even necessary.
+        entity.resetFallDistance();
 
+        return entity;
+    }
+
+    // I realized getPortalInfo gets called before placeEntity when the player gets transported into another dimension.
+    @Override
+    public @Nullable PortalInfo getPortalInfo(Entity entity, ServerLevel destWorld, Function<ServerLevel, PortalInfo> defaultPortalInfo) {
+        decideDestinationPos(entity, destWorld);
+        return new PortalInfo(Vec3.atCenterOf(destinationPos), Vec3.ZERO, entity.getYRot(), entity.getXRot());
+    }
+
+    private static void decideDestinationPos(Entity entity, ServerLevel destWorld) {
         RandomSource randomSource = entity.level().getRandom();
         currentPos = entity.blockPosition();
         entity.getCapability(ModCapabilities.PLAYER_CAPABILITY).ifPresent(iPlayerCap -> {
@@ -74,15 +88,6 @@ public class ModTeleporter implements ITeleporter {
             }
 
         });
-
-        entity.setPos(destinationPos.getX(), destinationPos.getY(), destinationPos.getZ());
-
-        return entity;
-    }
-
-    @Override
-    public @Nullable PortalInfo getPortalInfo(Entity entity, ServerLevel destWorld, Function<ServerLevel, PortalInfo> defaultPortalInfo) {
-        return new PortalInfo(Vec3.atCenterOf(destinationPos), Vec3.ZERO, entity.getYRot(), entity.getXRot());
     }
 
     public static void teleportPlayer(Player player) {
@@ -102,16 +107,20 @@ public class ModTeleporter implements ITeleporter {
         int xEnd = centerPos.getX() + ARENA_WIDTH / 2;
         int zBegin = centerPos.getZ() - (ARENA_WIDTH - 1) / 2;
         int zEnd = centerPos.getZ() + ARENA_WIDTH / 2;
-        for (int x = xBegin; x <= xEnd; x++) {
-            for (int z = zBegin; z <= zEnd; z++) {
-                for (int y = ARENA_Y; y < ARENA_Y + ARENA_HEIGHT; y++) {
-                    if (x == xBegin || x == xEnd || z == zBegin || z == zEnd) {
-                        destWorld.setBlock(
-                                new BlockPos(x, y, z), Blocks.WHITE_STAINED_GLASS.defaultBlockState(), 3);
-                    }
-                }
+        for (int y = ARENA_Y; y < ARENA_Y + ARENA_HEIGHT; y++) {
+            for (int x = xBegin; x <= xEnd; x++) {
+                placeWhiteStainedGlassBlock(x, y, zBegin, destWorld);
+                placeWhiteStainedGlassBlock(x, y, zEnd, destWorld);
+            }
+            for (int z = zBegin + 1; z < zEnd; z++) {
+                placeWhiteStainedGlassBlock(xBegin, y, z, destWorld);
+                placeWhiteStainedGlassBlock(xEnd, y, z, destWorld);
             }
         }
+    }
+
+    public static void placeWhiteStainedGlassBlock(int x, int y, int z, ServerLevel serverLevel) {
+        serverLevel.setBlock(new BlockPos(x, y, z), Blocks.WHITE_STAINED_GLASS.defaultBlockState(), 3);
     }
 
 }
