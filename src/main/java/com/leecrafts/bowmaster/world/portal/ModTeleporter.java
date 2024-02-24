@@ -6,6 +6,7 @@ import com.leecrafts.bowmaster.world.dimension.ModDimensions;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
@@ -18,6 +19,8 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.util.ITeleporter;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 public class ModTeleporter implements ITeleporter {
@@ -70,7 +73,8 @@ public class ModTeleporter implements ITeleporter {
                 WorldBorder worldBorder = destWorld.getWorldBorder();
                 do {
                     rollDestinationPos(worldBorder, randomSource);
-                } while (!isSafeToPlaceArena(destWorld));
+                    playerCap.setArenaDimBlockPos(destinationPos);
+                } while (!isSafeToPlaceArena(destWorld, entity, playerCap.arenaDimBlockPos));
 
                 placeArena(destWorld);
             }
@@ -92,12 +96,21 @@ public class ModTeleporter implements ITeleporter {
 
     public static void teleportPlayer(Player player) {
         if (player.level() instanceof ServerLevel serverLevel) {
-            ResourceKey<Level> resourceKey = player.level().dimension() == ModDimensions.ARENA_LEVEL_KEY ?
-                    Level.OVERWORLD : ModDimensions.ARENA_LEVEL_KEY;
-            ServerLevel dimension = serverLevel.getLevel().getServer().getLevel(resourceKey);
-            if (dimension != null) {
-                player.changeDimension(dimension, new ModTeleporter(
-                        resourceKey == ModDimensions.ARENA_LEVEL_KEY));
+            ResourceKey<Level> currentDimensionResourceKey = player.level().dimension();
+            ResourceKey<Level> destDimensionResourceKey;
+            if (currentDimensionResourceKey == Level.OVERWORLD) {
+                destDimensionResourceKey = ModDimensions.ARENA_LEVEL_KEY;
+            }
+            else if (currentDimensionResourceKey == ModDimensions.ARENA_LEVEL_KEY) {
+                destDimensionResourceKey = Level.OVERWORLD;
+            }
+            else {
+                return;
+            }
+            ServerLevel destDimension = serverLevel.getLevel().getServer().getLevel(destDimensionResourceKey);
+            if (destDimension != null) {
+                player.changeDimension(destDimension, new ModTeleporter(
+                        destDimensionResourceKey == ModDimensions.ARENA_LEVEL_KEY));
             }
         }
     }
@@ -113,12 +126,30 @@ public class ModTeleporter implements ITeleporter {
         zEnd = destinationPos.getZ() + ARENA_WIDTH / 2;
     }
 
-    private static boolean isSafeToPlaceArena(ServerLevel destWorld) {
-        for (int x = xBegin; x <= xEnd; x++) {
-            for (int z = zBegin + 1; z < zEnd; z++) {
-                if (destWorld.getBlockState(new BlockPos(x, ARENA_Y, z)).getBlock() != Blocks.AIR) {
-                    return false;
-                }
+    private static boolean isSafeToPlaceArena(ServerLevel destWorld, Entity entity, int[] areaDimBlockPos) {
+//        for (int x = xBegin; x <= xEnd; x++) {
+//            for (int z = zBegin + 1; z < zEnd; z++) {
+//                if (destWorld.getBlockState(new BlockPos(x, ARENA_Y, z)).getBlock() != Blocks.AIR) {
+//                    return false;
+//                }
+//            }
+//        }
+        List<ServerPlayer> players = destWorld.players();
+        if (players.isEmpty()) {
+            System.out.println("yeeeep! chuck testa!");
+            return true;
+        }
+        for (ServerPlayer serverPlayer : players) {
+            if (!serverPlayer.is(entity)) {
+                AtomicBoolean safe = new AtomicBoolean(true);
+                serverPlayer.getCapability(ModCapabilities.PLAYER_CAPABILITY).ifPresent(iPlayerCap -> {
+                    PlayerCap playerCap = (PlayerCap) iPlayerCap;
+                    if (Math.abs(playerCap.arenaDimBlockPos[0] - areaDimBlockPos[0]) < ARENA_WIDTH / 2 ||
+                            Math.abs(playerCap.arenaDimBlockPos[1] - areaDimBlockPos[1]) < ARENA_WIDTH / 2) {
+                        safe.set(false);
+                    }
+                });
+                if (!safe.get()) return false;
             }
         }
         return true;
