@@ -30,6 +30,10 @@ public class ModTeleporter implements ITeleporter {
     public static final int ARENA_WIDTH = 50;
     public static final int ARENA_HEIGHT = 100;
     public static final int ARENA_Y = -61;
+    private static int xBegin = 0;
+    private static int xEnd = 0;
+    private static int zBegin = 0;
+    private static int zEnd = 0;
 
     private static BlockPos currentPos = BlockPos.ZERO;
     private static BlockPos destinationPos = BlockPos.ZERO;
@@ -64,15 +68,11 @@ public class ModTeleporter implements ITeleporter {
                 playerCap.setOutsideDimBlockPos(currentPos);
 
                 WorldBorder worldBorder = destWorld.getWorldBorder();
-                destinationPos = new BlockPos(
-                        (int) (worldBorder.getMinX() + randomSource.nextInt((int) worldBorder.getMaxX())),
-                        ARENA_Y,
-                        (int) (worldBorder.getMinZ() + randomSource.nextInt((int) worldBorder.getMaxZ())));
+                do {
+                    rollDestinationPos(worldBorder, randomSource);
+                } while (!isSafeToPlaceArena(destWorld));
 
-//                playerCap.setArenaDimBlockPos(destinationPos); // tbh we can just manually check for any entities via AABB
-                // TODO check for other players' locations
-
-                placeArena(destWorld, destinationPos);
+                placeArena(destWorld);
             }
             else { // arena -> other dimension
                 destinationPos = new BlockPos(playerCap.outsideDimBlockPos[0], playerCap.outsideDimBlockPos[1], playerCap.outsideDimBlockPos[2]);
@@ -102,11 +102,29 @@ public class ModTeleporter implements ITeleporter {
         }
     }
 
-    public static void placeArena(ServerLevel destWorld, BlockPos centerPos) {
-        int xBegin = centerPos.getX() - (ARENA_WIDTH - 1) / 2;
-        int xEnd = centerPos.getX() + ARENA_WIDTH / 2;
-        int zBegin = centerPos.getZ() - (ARENA_WIDTH - 1) / 2;
-        int zEnd = centerPos.getZ() + ARENA_WIDTH / 2;
+    private static void rollDestinationPos(WorldBorder worldBorder, RandomSource randomSource) {
+        destinationPos = new BlockPos(
+                (int) (worldBorder.getMinX() + randomSource.nextInt((int) worldBorder.getMaxX())),
+                ARENA_Y,
+                (int) (worldBorder.getMinZ() + randomSource.nextInt((int) worldBorder.getMaxZ())));
+        xBegin = destinationPos.getX() - (ARENA_WIDTH - 1) / 2;
+        xEnd = destinationPos.getX() + ARENA_WIDTH / 2;
+        zBegin = destinationPos.getZ() - (ARENA_WIDTH - 1) / 2;
+        zEnd = destinationPos.getZ() + ARENA_WIDTH / 2;
+    }
+
+    private static boolean isSafeToPlaceArena(ServerLevel destWorld) {
+        for (int x = xBegin; x <= xEnd; x++) {
+            for (int z = zBegin + 1; z < zEnd; z++) {
+                if (destWorld.getBlockState(new BlockPos(x, ARENA_Y, z)).getBlock() != Blocks.AIR) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    public static void placeArena(ServerLevel destWorld) {
         for (int y = ARENA_Y; y < ARENA_Y + ARENA_HEIGHT; y++) {
             for (int x = xBegin; x <= xEnd; x++) {
                 placeWhiteStainedGlassBlock(x, y, zBegin, destWorld);
