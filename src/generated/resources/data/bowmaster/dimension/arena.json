@@ -15,7 +15,8 @@
           "block": "minecraft:smooth_stone",
           "height": 2
         }
-      ]
+      ],
+      "structure_overrides": []
     }
   }
 }
