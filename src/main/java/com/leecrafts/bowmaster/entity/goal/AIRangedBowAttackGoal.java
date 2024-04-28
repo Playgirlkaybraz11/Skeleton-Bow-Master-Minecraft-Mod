@@ -10,6 +10,21 @@ import net.minecraft.world.entity.monster.RangedAttackMob;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
 import net.minecraft.world.item.BowItem;
 import net.minecraft.world.phys.Vec3;
+import org.encog.engine.network.activation.ActivationSigmoid;
+import org.encog.neural.networks.BasicNetwork;
+import org.encog.neural.networks.layers.BasicLayer;
+//import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
+//import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
+//import org.deeplearning4j.nn.conf.layers.DenseLayer;
+//import org.deeplearning4j.nn.conf.layers.OutputLayer;
+//import org.deeplearning4j.nn.weights.WeightInit;
+//import org.nd4j.linalg.activations.Activation;
+//import org.nd4j.linalg.learning.config.Nesterovs;
+//import org.nd4j.linalg.learning.config.Sgd;
+//import org.nd4j.linalg.lossfunctions.LossFunctions;
+//import org.tensorflow.ndarray.StdArrays;
+//import org.tensorflow.ndarray.buffer.DataBuffers;
+//import org.tensorflow.types.TFloat32;
 
 public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAttackMob> extends Goal {
 
@@ -32,6 +47,27 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
     public void start() {
         super.start();
         this.mob.setAggressive(true);
+        BasicNetwork basicNetwork = new BasicNetwork();
+        basicNetwork.addLayer(new BasicLayer(new ActivationSigmoid(), true, 2));
+        basicNetwork.addLayer(new BasicLayer(new ActivationSigmoid(), true, 5));
+        basicNetwork.addLayer(new BasicLayer(new ActivationSigmoid(), true, 1));
+        basicNetwork.getStructure().finalizeStructure();
+        basicNetwork.reset();
+//        MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder()
+//                .seed(0)
+//                .activation(Activation.TANH)
+//                .weightInit(WeightInit.XAVIER)
+//                .updater(new Sgd(0.1))
+//                .l2(1e-4)
+//                .list()
+//                .layer(new DenseLayer.Builder().nIn(10).nOut(3)
+//                        .build())
+//                .layer(new DenseLayer.Builder().nIn(3).nOut(3)
+//                        .build())
+//                .layer( new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD)
+//                        .activation(Activation.SOFTMAX) //Override the global TANH activation with softmax for this layer
+//                        .nIn(3).nOut(10).build())
+//                .build();
     }
 
     @Override
@@ -50,9 +86,14 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
     public void tick() {
         LivingEntity livingEntity = this.mob.getTarget();
         if (livingEntity != null) {
+//            System.out.println(System.getProperty("java.library.path"));
+//            try (TFloat32 randomTensor = TFloat32.tensorOf(StdArrays.ndCopyOf(new float[]{(float)Math.random(), (float)Math.random(), (float)Math.random()}))) {
+//                System.out.println(randomTensor.toString());
+////                randomTensor.read(DataBuffers.of(new float[3]));
+//            }
             RandomSource random = this.mob.getRandom();
             boolean useItem = random.nextInt(10) > 0;
-            // TODO it can be forward, backward, or nothing
+            // TODO it can be forward,w backward, or nothing
             boolean goForward = random.nextInt(2) > 0;
             // TODO it can be left, right, or nothing
             boolean goLeft = random.nextInt(2) > 0;

@@ -11,6 +11,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.border.WorldBorder;
 import net.minecraft.world.level.material.Fluids;
@@ -33,10 +34,6 @@ public class ModTeleporter implements ITeleporter {
     public static final int ARENA_WIDTH = 50;
     public static final int ARENA_HEIGHT = 100;
     public static final int ARENA_Y = -61;
-    private static int xBegin = 0;
-    private static int xEnd = 0;
-    private static int zBegin = 0;
-    private static int zEnd = 0;
 
     private static BlockPos currentPos = BlockPos.ZERO;
     private static BlockPos destinationPos = BlockPos.ZERO;
@@ -76,7 +73,7 @@ public class ModTeleporter implements ITeleporter {
                     playerCap.setArenaDimBlockPos(destinationPos);
                 } while (!isSafeToPlaceArena(destWorld, entity, playerCap.arenaDimBlockPos));
 
-                placeArena(destWorld);
+                placeArena(destWorld, playerCap.arenaDimBlockPos);
             }
             else { // arena -> other dimension
                 destinationPos = new BlockPos(playerCap.outsideDimBlockPos[0], playerCap.outsideDimBlockPos[1], playerCap.outsideDimBlockPos[2]);
@@ -88,6 +85,10 @@ public class ModTeleporter implements ITeleporter {
                         tries < 25) {
                     destinationPos = destinationPos.above(2);
                     tries++;
+                }
+
+                if (entity instanceof ServerPlayer serverPlayer) {
+                    removeArena(serverPlayer.serverLevel(), playerCap.arenaDimBlockPos);
                 }
             }
 
@@ -120,10 +121,10 @@ public class ModTeleporter implements ITeleporter {
                 (int) (worldBorder.getMinX() + randomSource.nextInt((int) worldBorder.getMaxX())),
                 ARENA_Y,
                 (int) (worldBorder.getMinZ() + randomSource.nextInt((int) worldBorder.getMaxZ())));
-        xBegin = destinationPos.getX() - (ARENA_WIDTH - 1) / 2;
-        xEnd = destinationPos.getX() + ARENA_WIDTH / 2;
-        zBegin = destinationPos.getZ() - (ARENA_WIDTH - 1) / 2;
-        zEnd = destinationPos.getZ() + ARENA_WIDTH / 2;
+//        xBegin = destinationPos.getX() - (ARENA_WIDTH - 1) / 2;
+//        xEnd = destinationPos.getX() + ARENA_WIDTH / 2;
+//        zBegin = destinationPos.getZ() - (ARENA_WIDTH - 1) / 2;
+//        zEnd = destinationPos.getZ() + ARENA_WIDTH / 2;
     }
 
     private static boolean isSafeToPlaceArena(ServerLevel destWorld, Entity entity, int[] areaDimBlockPos) {
@@ -136,7 +137,6 @@ public class ModTeleporter implements ITeleporter {
 //        }
         List<ServerPlayer> players = destWorld.players();
         if (players.isEmpty()) {
-            System.out.println("yeeeep! chuck testa!");
             return true;
         }
         for (ServerPlayer serverPlayer : players) {
@@ -155,21 +155,33 @@ public class ModTeleporter implements ITeleporter {
         return true;
     }
 
-    public static void placeArena(ServerLevel destWorld) {
+    public static void placeArena(ServerLevel arenaWorld, int[] arenaDimBlockPos) {
+        setArenaBlocks(arenaWorld, arenaDimBlockPos, Blocks.WHITE_STAINED_GLASS);
+    }
+
+    public static void removeArena(ServerLevel arenaWorld, int[] arenaDimBlockPos) {
+        setArenaBlocks(arenaWorld, arenaDimBlockPos, Blocks.AIR);
+    }
+
+    public static void setArenaBlocks(ServerLevel arenaWorld, int[] arenaDimBlockPos, Block block) {
+        int xBegin = arenaDimBlockPos[0] - (ARENA_WIDTH - 1) / 2;
+        int xEnd = arenaDimBlockPos[0] + ARENA_WIDTH / 2;
+        int zBegin = arenaDimBlockPos[2] - (ARENA_WIDTH - 1) / 2;
+        int zEnd = arenaDimBlockPos[2] + ARENA_WIDTH / 2;
         for (int y = ARENA_Y; y < ARENA_Y + ARENA_HEIGHT; y++) {
             for (int x = xBegin; x <= xEnd; x++) {
-                placeWhiteStainedGlassBlock(x, y, zBegin, destWorld);
-                placeWhiteStainedGlassBlock(x, y, zEnd, destWorld);
+                setBlock(x, y, zBegin, arenaWorld, block);
+                setBlock(x, y, zEnd, arenaWorld, block);
             }
             for (int z = zBegin + 1; z < zEnd; z++) {
-                placeWhiteStainedGlassBlock(xBegin, y, z, destWorld);
-                placeWhiteStainedGlassBlock(xEnd, y, z, destWorld);
+                setBlock(xBegin, y, z, arenaWorld, block);
+                setBlock(xEnd, y, z, arenaWorld, block);
             }
         }
     }
 
-    public static void placeWhiteStainedGlassBlock(int x, int y, int z, ServerLevel serverLevel) {
-        serverLevel.setBlock(new BlockPos(x, y, z), Blocks.WHITE_STAINED_GLASS.defaultBlockState(), 3);
+    public static void setBlock(int x, int y, int z, ServerLevel serverLevel, Block block) {
+        serverLevel.setBlock(new BlockPos(x, y, z), block.defaultBlockState(), 3);
     }
 
 }
