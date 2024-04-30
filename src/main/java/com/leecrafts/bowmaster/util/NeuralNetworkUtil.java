@@ -56,7 +56,7 @@ public class NeuralNetworkUtil {
     }
 
     private static File getFile(int modelNumber) {
-        return new File(String.format("%s/%s-%d.txt", MODEL_DIRECTORY_PATH, MODEL_BASE_NAME, modelNumber));
+        return new File(String.format("%s/%s-%d.eg", MODEL_DIRECTORY_PATH, MODEL_BASE_NAME, modelNumber));
     }
 
 }

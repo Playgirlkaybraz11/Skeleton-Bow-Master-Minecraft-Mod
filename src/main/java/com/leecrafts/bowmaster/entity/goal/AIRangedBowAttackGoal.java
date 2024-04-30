@@ -9,11 +9,15 @@ import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.monster.RangedAttackMob;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
 import net.minecraft.world.item.BowItem;
+import org.encog.neural.networks.BasicNetwork;
 import org.joml.Vector3d;
 
 public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAttackMob> extends Goal {
 
     private final T mob;
+
+    // TODO maybe don't initialize network here
+    private final BasicNetwork network = NeuralNetworkUtil.createNetwork(5);
 
     public AIRangedBowAttackGoal(T mob) {
         this.mob = mob;
@@ -32,6 +36,10 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
     public void start() {
         super.start();
         this.mob.setAggressive(true);
+
+        // TODO don't create network here
+        NeuralNetworkUtil.saveModel(network);
+        System.out.println("saved test model");
     }
 
     @Override
@@ -54,7 +62,7 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
             // TODO make observations
 
             // TODO action outputs
-            float[] actionOutputs = NeuralNetworkUtil.computeOutput(network, observation);
+            double[] actionOutputs = NeuralNetworkUtil.computeOutput(network, new double[] {1, 1, 1, 1, 1});
             handleRightClick(livingEntity, actionOutputs[0]);
             handleMovement(actionOutputs[1], actionOutputs[2], actionOutputs[3]);
             handleStrafing(actionOutputs[4], actionOutputs[5], actionOutputs[6]);
@@ -69,7 +77,7 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
         }
     }
 
-    private void handleRightClick(LivingEntity target, float output) {
+    private void handleRightClick(LivingEntity target, double output) {
         boolean press = output > 0; // < 0 is not press, > 0 is press
         if (press) {
             this.mob.startUsingItem(ProjectileUtil.getWeaponHoldingHand(this.mob, item -> item instanceof BowItem));
@@ -86,7 +94,7 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
         }
     }
 
-    private void handleMovement(float forward, float backward, float neither) {
+    private void handleMovement(double forward, double backward, double neither) {
         if (forward > backward && forward > neither) {
             this.mob.forwardImpulse(1.0f);
         } else if (backward > neither) {
@@ -94,7 +102,7 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
         }
     }
 
-    private void handleStrafing(float left, float right, float neither) {
+    private void handleStrafing(double left, double right, double neither) {
         // I could use MoveControl#strafe, but there are some unwanted hardcoded behaviors
         if (left > right && left > neither) {
             this.mob.setXxa(1.0f);
@@ -103,15 +111,15 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
         }
     }
 
-    private void handleJump(float output) {
+    private void handleJump(double output) {
         if (output > 0) {
             this.mob.getJumpControl().jump();
         }
     }
 
-    private void handleLookDirection(float x, float y) {
-        this.mob.setXRot(this.mob.getXRot() + 360 * x);
-        this.mob.setYRot(this.mob.getYRot() + 360 * y);
+    private void handleLookDirection(double x, double y) {
+        this.mob.setXRot((float) (this.mob.getXRot() + 360 * x));
+        this.mob.setYRot((float) (this.mob.getYRot() + 360 * y));
     }
 
     private void spamArrows(LivingEntity target) {
