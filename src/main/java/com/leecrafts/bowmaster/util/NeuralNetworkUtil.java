@@ -21,7 +21,7 @@ public class NeuralNetworkUtil {
         pattern.setOutputNeurons(13);
         pattern.setActivationFunction(new ActivationTANH()); // output of tanh is (-1, 1)
 
-        BasicNetwork network = (BasicNetwork)pattern.generate();
+        BasicNetwork network = (BasicNetwork) pattern.generate();
         network.reset();
         return network;
     }
@@ -57,6 +57,21 @@ public class NeuralNetworkUtil {
 
     private static File getFile(int modelNumber) {
         return new File(String.format("%s/%s-%d.eg", MODEL_DIRECTORY_PATH, MODEL_BASE_NAME, modelNumber));
+    }
+
+    public static void printWeights(BasicNetwork network) {
+        for (int layer = 0; layer < network.getLayerCount() - 1; layer++) {
+            int fromCount = network.getLayerTotalNeuronCount(layer);
+            int toCount = network.getLayerNeuronCount(layer + 1);
+
+            System.out.println("Weights from Layer " + layer + " to Layer " + (layer + 1) + ":");
+            for (int fromNeuron = 0; fromNeuron < fromCount; fromNeuron++) {
+                for (int toNeuron = 0; toNeuron < toCount; toNeuron++) {
+                    double weight = network.getWeight(layer, fromNeuron, toNeuron);
+                    System.out.println("Weight[" + fromNeuron + "][" + toNeuron + "]: " + weight);
+                }
+            }
+        }
     }
 
 }

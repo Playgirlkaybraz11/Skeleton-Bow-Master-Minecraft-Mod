@@ -63,6 +63,8 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
             // TODO make observations
 
             // TODO action outputs
+            NeuralNetworkUtil.printWeights(network);
+            network.getFlat().getWeights()[0] += 94321;
             double[] actionOutputs = NeuralNetworkUtil.computeOutput(network, new double[] {1, 1, 1, 1, 1});
             handleRightClick(livingEntity, actionOutputs[0]);
             handleMovement(actionOutputs[1], actionOutputs[2], actionOutputs[3]);
