@@ -17,7 +17,8 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
     private final T mob;
 
     // TODO maybe don't initialize network here
-    private final BasicNetwork network = NeuralNetworkUtil.createNetwork(5);
+//    private final BasicNetwork network = NeuralNetworkUtil.createNetwork(5);
+    private final BasicNetwork network = NeuralNetworkUtil.loadModel();
 
     public AIRangedBowAttackGoal(T mob) {
         this.mob = mob;
@@ -38,8 +39,8 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
         this.mob.setAggressive(true);
 
         // TODO don't create network here
-        NeuralNetworkUtil.saveModel(network);
-        System.out.println("saved test model");
+//        NeuralNetworkUtil.saveModel(network);
+//        System.out.println("saved test model");
     }
 
     @Override
