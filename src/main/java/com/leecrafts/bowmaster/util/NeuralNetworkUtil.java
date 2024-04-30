@@ -49,13 +49,7 @@ public class NeuralNetworkUtil {
 
     private static int getNewestModelNumber() {
         int counter = 0;
-        File file;
-
-        while (true) {
-            file = getFile(counter);
-            if (!file.exists()) {
-                break;
-            }
+        while (getFile(counter).exists()) {
             counter++;
         }
         return counter;
