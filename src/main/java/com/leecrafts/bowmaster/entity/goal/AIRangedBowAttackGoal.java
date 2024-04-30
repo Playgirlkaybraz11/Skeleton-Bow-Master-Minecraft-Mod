@@ -1,18 +1,15 @@
 package com.leecrafts.bowmaster.entity.goal;
 
 import com.leecrafts.bowmaster.entity.custom.SkeletonBowMasterEntity;
+import com.leecrafts.bowmaster.util.NeuralNetworkUtil;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.monster.RangedAttackMob;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
 import net.minecraft.world.item.BowItem;
-import net.minecraft.world.phys.Vec3;
-import org.encog.engine.network.activation.ActivationSigmoid;
-import org.encog.neural.networks.BasicNetwork;
-import org.encog.neural.networks.layers.BasicLayer;
+import org.joml.Vector3d;
 
 public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAttackMob> extends Goal {
 
@@ -35,12 +32,6 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
     public void start() {
         super.start();
         this.mob.setAggressive(true);
-        BasicNetwork basicNetwork = new BasicNetwork();
-        basicNetwork.addLayer(new BasicLayer(new ActivationSigmoid(), true, 2));
-        basicNetwork.addLayer(new BasicLayer(new ActivationSigmoid(), true, 5));
-        basicNetwork.addLayer(new BasicLayer(new ActivationSigmoid(), true, 1));
-        basicNetwork.getStructure().finalizeStructure();
-        basicNetwork.reset();
     }
 
     @Override
@@ -59,64 +50,81 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
     public void tick() {
         LivingEntity livingEntity = this.mob.getTarget();
         if (livingEntity != null) {
-//            System.out.println(System.getProperty("java.library.path"));
-//            try (TFloat32 randomTensor = TFloat32.tensorOf(StdArrays.ndCopyOf(new float[]{(float)Math.random(), (float)Math.random(), (float)Math.random()}))) {
-//                System.out.println(randomTensor.toString());
-////                randomTensor.read(DataBuffers.of(new float[3]));
-//            }
-            RandomSource random = this.mob.getRandom();
-            boolean useItem = random.nextInt(10) > 0;
-            // TODO it can be forward,w backward, or nothing
-            boolean goForward = random.nextInt(2) > 0;
-            // TODO it can be left, right, or nothing
-            boolean goLeft = random.nextInt(2) > 0;
-            boolean jump = random.nextInt(10) == 0;
+
+            // TODO make observations
+
+            // TODO action outputs
+            float[] actionOutputs = NeuralNetworkUtil.computeOutput(network, observation);
+            handleRightClick(livingEntity, actionOutputs[0]);
+            handleMovement(actionOutputs[1], actionOutputs[2], actionOutputs[3]);
+            handleStrafing(actionOutputs[4], actionOutputs[5], actionOutputs[6]);
+            handleJump(actionOutputs[7]);
+            handleLookDirection(actionOutputs[8], actionOutputs[9]);
 
             float f = (float)this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED);
             float f1 = (float) (0.25 * f);
             this.mob.setSpeed(f1);
 
-            // I could use MoveControl#strafe, but there are some unwanted hardcoded behaviors
-
-            if (goForward) {
-                this.mob.forwardImpulse(random.nextBoolean() ? 1.0f : -1.0f);
-            }
-
-            if (goLeft) {
-                this.mob.setXxa(random.nextBoolean() ? 1.0f : -1.0f);
-            }
-
-            if (jump) {
-                this.mob.getJumpControl().jump();
-            }
-
-            this.mob.lookAt(livingEntity, 360, 360);
-//            this.mob.setXRot(this.mob.getXRot() + 360 * random.nextFloat());
-//            this.mob.setYRot(this.mob.getYRot() + 360 * random.nextFloat());
-
-            if (useItem) {
-                this.mob.startUsingItem(ProjectileUtil.getWeaponHoldingHand(this.mob, item -> item instanceof BowItem));
-            }
-            else {
-                if (this.mob.isUsingItem()) {
-                    int i = this.mob.getTicksUsingItem();
-                    // TODO actually 5??
-                    if (i >= 5) {
-                        this.mob.performRangedAttack(livingEntity, BowItem.getPowerForTime(i));
-                    }
-                    this.mob.stopUsingItem();
-                }
-            }
-//            if (this.mob.isUsingItem()) {
-//                int i = this.mob.getTicksUsingItem();
-//                if (i >= 5) {
-//                    this.mob.stopUsingItem();
-//                    this.mob.performRangedAttack(livingEntity, BowItem.getPowerForTime(i));
-//                }
-//            }
-//            else {
-//                this.mob.startUsingItem(ProjectileUtil.getWeaponHoldingHand(this.mob, item -> item instanceof BowItem));
-//            }
+//            spamArrows(livingEntity);
         }
     }
+
+    private void handleRightClick(LivingEntity target, float output) {
+        boolean press = output > 0; // < 0 is not press, > 0 is press
+        if (press) {
+            this.mob.startUsingItem(ProjectileUtil.getWeaponHoldingHand(this.mob, item -> item instanceof BowItem));
+        }
+        else {
+            if (this.mob.isUsingItem()) {
+                int i = this.mob.getTicksUsingItem();
+                // TODO actually 5??
+                if (i >= 5) {
+                    this.mob.performRangedAttack(target, BowItem.getPowerForTime(i));
+                }
+                this.mob.stopUsingItem();
+            }
+        }
+    }
+
+    private void handleMovement(float forward, float backward, float neither) {
+        if (forward > backward && forward > neither) {
+            this.mob.forwardImpulse(1.0f);
+        } else if (backward > neither) {
+            this.mob.forwardImpulse(-1.0f);
+        }
+    }
+
+    private void handleStrafing(float left, float right, float neither) {
+        // I could use MoveControl#strafe, but there are some unwanted hardcoded behaviors
+        if (left > right && left > neither) {
+            this.mob.setXxa(1.0f);
+        } else if (right > neither) {
+            this.mob.setXxa(-1.0f);
+        }
+    }
+
+    private void handleJump(float output) {
+        if (output > 0) {
+            this.mob.getJumpControl().jump();
+        }
+    }
+
+    private void handleLookDirection(float x, float y) {
+        this.mob.setXRot(this.mob.getXRot() + 360 * x);
+        this.mob.setYRot(this.mob.getYRot() + 360 * y);
+    }
+
+    private void spamArrows(LivingEntity target) {
+        if (this.mob.isUsingItem()) {
+            int i = this.mob.getTicksUsingItem();
+            if (i >= 5) {
+                this.mob.stopUsingItem();
+                this.mob.performRangedAttack(target, BowItem.getPowerForTime(i));
+            }
+        }
+        else {
+            this.mob.startUsingItem(ProjectileUtil.getWeaponHoldingHand(this.mob, item -> item instanceof BowItem));
+        }
+    }
+
 }
