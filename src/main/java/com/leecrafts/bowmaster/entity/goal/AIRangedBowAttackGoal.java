@@ -2,7 +2,6 @@ package com.leecrafts.bowmaster.entity.goal;
 
 import com.leecrafts.bowmaster.entity.custom.SkeletonBowMasterEntity;
 import com.leecrafts.bowmaster.util.NeuralNetworkUtil;
-import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.Goal;
@@ -10,15 +9,10 @@ import net.minecraft.world.entity.monster.RangedAttackMob;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
 import net.minecraft.world.item.BowItem;
 import org.encog.neural.networks.BasicNetwork;
-import org.joml.Vector3d;
 
 public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAttackMob> extends Goal {
 
     private final T mob;
-
-    // TODO maybe don't initialize network here
-//    private final BasicNetwork network = NeuralNetworkUtil.createNetwork(5);
-    private final BasicNetwork network = NeuralNetworkUtil.loadModel();
 
     public AIRangedBowAttackGoal(T mob) {
         this.mob = mob;
@@ -63,9 +57,10 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
             // TODO make observations
 
             // TODO action outputs
-            NeuralNetworkUtil.printWeights(network);
-            network.getFlat().getWeights()[0] += 94321;
-            double[] actionOutputs = NeuralNetworkUtil.computeOutput(network, new double[] {1, 1, 1, 1, 1});
+            BasicNetwork network = this.mob.getNetwork();
+//            NeuralNetworkUtil.printWeights(network);
+//            network.getFlat().getWeights()[0] += 94321;
+            double[] actionOutputs = NeuralNetworkUtil.computeOutput(network, new double[] {1, 1, 1, 1, 1, 1, 1, 1, 1});
             handleRightClick(livingEntity, actionOutputs[0]);
             handleMovement(actionOutputs[1], actionOutputs[2], actionOutputs[3]);
             handleStrafing(actionOutputs[4], actionOutputs[5], actionOutputs[6]);

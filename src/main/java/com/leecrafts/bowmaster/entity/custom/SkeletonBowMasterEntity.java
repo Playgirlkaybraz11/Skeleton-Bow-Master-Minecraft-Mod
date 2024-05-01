@@ -1,6 +1,7 @@
 package com.leecrafts.bowmaster.entity.custom;
 
 import com.leecrafts.bowmaster.entity.goal.AIRangedBowAttackGoal;
+import com.leecrafts.bowmaster.util.NeuralNetworkUtil;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.damagesource.DamageSource;
@@ -17,15 +18,18 @@ import net.minecraft.world.entity.projectile.ProjectileUtil;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
+import org.encog.neural.networks.BasicNetwork;
 import org.jetbrains.annotations.NotNull;
 
 public class SkeletonBowMasterEntity extends AbstractSkeleton {
 
     protected boolean shouldForwardImpulse = false;
     private float reward = 0.0f;
+    private final BasicNetwork network;
 
     public SkeletonBowMasterEntity(EntityType<? extends AbstractSkeleton> pEntityType, Level pLevel) {
         super(pEntityType, pLevel);
+        network = NeuralNetworkUtil.loadOrCreateModel();
     }
 
     @Override
@@ -44,6 +48,7 @@ public class SkeletonBowMasterEntity extends AbstractSkeleton {
     public void die(@NotNull DamageSource pDamageSource) {
         super.die(pDamageSource);
         if (!this.level().isClientSide) {
+            NeuralNetworkUtil.saveModel(this.network);
             System.out.println(this.reward);
         }
     }
@@ -64,6 +69,10 @@ public class SkeletonBowMasterEntity extends AbstractSkeleton {
     public void forwardImpulse(float amount) {
         this.setZza(amount);
         this.shouldForwardImpulse = amount != 0;
+    }
+
+    public BasicNetwork getNetwork() {
+        return this.network;
     }
 
     @Override

@@ -8,17 +8,22 @@ import org.encog.neural.pattern.FeedForwardPattern;
 import org.encog.persist.EncogDirectoryPersistence;
 
 import java.io.File;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class NeuralNetworkUtil {
 
-    private static String MODEL_DIRECTORY_PATH = "/Users/wlee2019/Downloads/mod repos/skeleton bow master/src/main/java/com/leecrafts/bowmaster/util/models";
-    private static String MODEL_BASE_NAME = "model";
+    private static final String MODEL_DIRECTORY_PATH = "/Users/wlee2019/Downloads/mod repos/skeleton bow master/src/main/java/com/leecrafts/bowmaster/util/models";
+//    private static final String MODEL_DIRECTORY_PATH = "src/main/java/com/leecrafts/bowmaster/util/models";
+    private static final String MODEL_BASE_NAME = "model";
+    private static final int INPUT_SIZE = 9;
+    private static final int OUTPUT_SIZE = 13;
 
-    public static BasicNetwork createNetwork(int inputSize) {
+    public static BasicNetwork createNetwork() {
         FeedForwardPattern pattern = new FeedForwardPattern();
-        pattern.setInputNeurons(inputSize);
+        pattern.setInputNeurons(INPUT_SIZE);
         pattern.addHiddenLayer(32);
-        pattern.setOutputNeurons(13);
+        pattern.setOutputNeurons(OUTPUT_SIZE);
         pattern.setActivationFunction(new ActivationTANH()); // output of tanh is (-1, 1)
 
         BasicNetwork network = (BasicNetwork) pattern.generate();
@@ -33,29 +38,45 @@ public class NeuralNetworkUtil {
     }
 
     public static void saveModel(BasicNetwork network) {
-        EncogDirectoryPersistence.saveObject(
-                getFile(getNewestModelNumber()), network);
+        EncogDirectoryPersistence.saveObject(file(getNewestModelNumber() + 1), network);
     }
 
-    public static BasicNetwork loadModel() {
-        return (BasicNetwork) EncogDirectoryPersistence.loadObject(
-                getFile(getNewestModelNumber() - 1));
+    public static BasicNetwork loadOrCreateModel() {
+        return loadOrCreateModel(getNewestModelNumber());
     }
 
-    public static BasicNetwork loadModel(int modelNumber) {
-        return (BasicNetwork) EncogDirectoryPersistence.loadObject(
-                getFile(modelNumber));
+    public static BasicNetwork loadOrCreateModel(int modelNumber) {
+        // TODO what if there are no models in the directory?
+        File file = file(modelNumber);
+        if (file.exists()) {
+            return (BasicNetwork) EncogDirectoryPersistence.loadObject(file);
+        }
+        else {
+            return createNetwork();
+        }
     }
 
     private static int getNewestModelNumber() {
-        int counter = 0;
-        while (getFile(counter).exists()) {
-            counter++;
+        File[] files = new File(MODEL_DIRECTORY_PATH).listFiles();  // Get all files in the directory
+        int maxNum = -1;
+        if (files == null) {
+            return maxNum;
         }
-        return counter;
+
+        Pattern pattern = Pattern.compile(String.format("^%s-(\\d+)\\.eg$", MODEL_BASE_NAME));  // Regex to find files
+        for (File file : files) {
+            if (file.isFile()) {
+                Matcher matcher = pattern.matcher(file.getName());
+                if (matcher.matches()) {
+                    maxNum = Math.max(maxNum, Integer.parseInt(matcher.group(1)));
+                }
+            }
+        }
+
+        return maxNum;
     }
 
-    private static File getFile(int modelNumber) {
+    private static File file(int modelNumber) {
         return new File(String.format("%s/%s-%d.eg", MODEL_DIRECTORY_PATH, MODEL_BASE_NAME, modelNumber));
     }
 
