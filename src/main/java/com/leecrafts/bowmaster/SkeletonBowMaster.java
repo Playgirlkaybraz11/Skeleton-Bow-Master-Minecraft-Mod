@@ -3,6 +3,7 @@ package com.leecrafts.bowmaster;
 import com.leecrafts.bowmaster.entity.ModEntityTypes;
 import com.leecrafts.bowmaster.entity.client.SkeletonBowMasterRenderer;
 import com.leecrafts.bowmaster.item.ModItems;
+import com.leecrafts.bowmaster.packet.PacketHandler;
 import com.leecrafts.bowmaster.world.dimension.ModDimensions;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
@@ -105,6 +106,8 @@ public class SkeletonBowMaster
         LOGGER.info(Config.magicNumberIntroduction + Config.magicNumber);
 
         Config.items.forEach((item) -> LOGGER.info("ITEM >> {}", item.toString()));
+
+        event.enqueueWork(PacketHandler::init);
     }
 
     // Add the example block item to the building blocks tab

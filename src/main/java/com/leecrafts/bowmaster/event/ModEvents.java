@@ -2,12 +2,16 @@ package com.leecrafts.bowmaster.event;
 
 import com.leecrafts.bowmaster.SkeletonBowMaster;
 import com.leecrafts.bowmaster.capability.ModCapabilities;
+import com.leecrafts.bowmaster.capability.livingentity.ILivingEntityCap;
+import com.leecrafts.bowmaster.capability.livingentity.LivingEntityCapProvider;
 import com.leecrafts.bowmaster.capability.player.IPlayerCap;
 import com.leecrafts.bowmaster.capability.player.PlayerCap;
 import com.leecrafts.bowmaster.capability.player.PlayerCapProvider;
 import com.leecrafts.bowmaster.entity.ModEntityTypes;
 import com.leecrafts.bowmaster.entity.client.SkeletonBowMasterModel;
 import com.leecrafts.bowmaster.entity.custom.SkeletonBowMasterEntity;
+import com.leecrafts.bowmaster.packet.PacketHandler;
+import com.leecrafts.bowmaster.packet.ServerboundLivingEntityVelocityPacket;
 import com.leecrafts.bowmaster.world.dimension.ModDimensions;
 import com.leecrafts.bowmaster.world.portal.ModTeleporter;
 import net.minecraft.resources.ResourceLocation;
@@ -20,10 +24,12 @@ import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.common.capabilities.RegisterCapabilitiesEvent;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
+import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.network.PacketDistributor;
 
 public class ModEvents {
 
@@ -33,6 +39,7 @@ public class ModEvents {
         @SubscribeEvent
         public static void registerCapabilities(RegisterCapabilitiesEvent event) {
             event.register(IPlayerCap.class);
+            event.register(ILivingEntityCap.class);
         }
 
         @SubscribeEvent
@@ -41,6 +48,19 @@ public class ModEvents {
                 if (!player.getCapability(ModCapabilities.PLAYER_CAPABILITY).isPresent()) {
                     PlayerCapProvider playerCapProvider = new PlayerCapProvider();
                     event.addCapability(new ResourceLocation(SkeletonBowMaster.MODID, "player"), playerCapProvider);
+                }
+            }
+        }
+
+        @SubscribeEvent
+        public static void onAttachCapabilitiesEventLivingEntity(AttachCapabilitiesEvent<Entity> event) {
+            if (event.getObject() instanceof LivingEntity livingEntity && !livingEntity.getCommandSenderWorld().isClientSide) {
+                if (!livingEntity.getCapability(ModCapabilities.LIVING_ENTITY_CAPABILITY).isPresent()) {
+                    LivingEntityCapProvider livingEntityCapProvider = new LivingEntityCapProvider();
+                    event.addCapability(new ResourceLocation(SkeletonBowMaster.MODID, "living_entity"), livingEntityCapProvider);
+                    if (!(livingEntity instanceof Player)) {
+                        event.addListener(livingEntityCapProvider::invalidate);
+                    }
                 }
             }
         }
@@ -70,6 +90,15 @@ public class ModEvents {
                 });
             });
             originalPlayer.invalidateCaps();
+        }
+
+        @SubscribeEvent
+        public static void livingTickEvent(LivingEvent.LivingTickEvent event) {
+            LivingEntity livingEntity = event.getEntity();
+            if (livingEntity.level().isClientSide) {
+                PacketHandler.INSTANCE.send(new ServerboundLivingEntityVelocityPacket(
+                        livingEntity.getId(), livingEntity.getDeltaMovement()), PacketDistributor.SERVER.noArg());
+            }
         }
 
     }

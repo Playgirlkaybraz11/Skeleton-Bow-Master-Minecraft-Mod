@@ -1,5 +1,8 @@
 package com.leecrafts.bowmaster.entity.goal;
 
+import com.leecrafts.bowmaster.capability.ModCapabilities;
+import com.leecrafts.bowmaster.capability.livingentity.ILivingEntityCap;
+import com.leecrafts.bowmaster.capability.livingentity.LivingEntityCap;
 import com.leecrafts.bowmaster.entity.custom.SkeletonBowMasterEntity;
 import com.leecrafts.bowmaster.util.NeuralNetworkUtil;
 import net.minecraft.world.entity.LivingEntity;
@@ -9,7 +12,10 @@ import net.minecraft.world.entity.monster.RangedAttackMob;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
 import net.minecraft.world.item.BowItem;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.common.util.LazyOptional;
 import org.encog.neural.networks.BasicNetwork;
+
+import java.util.concurrent.atomic.AtomicReference;
 
 import static net.minecraft.SharedConstants.TICKS_PER_SECOND;
 
@@ -86,7 +92,15 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
         double horizontalDistance = Math.sqrt(distance.x * distance.x + distance.z * distance.z);
         double verticalDistance = distance.y;
 
-        double[] target_FB_LR_UD = calculate_FB_LR_UD_ofVelocity(distance, target.getDeltaMovement());
+        AtomicReference<Vec3> targetVelocity = new AtomicReference<>(Vec3.ZERO);
+        LazyOptional<ILivingEntityCap> capability = target.getCapability(ModCapabilities.LIVING_ENTITY_CAPABILITY);
+        if (capability.isPresent()) {
+            capability.ifPresent(iLivingEntityCap -> {
+                LivingEntityCap livingEntityCap = (LivingEntityCap) iLivingEntityCap;
+                targetVelocity.set(livingEntityCap.getVelocity());
+            });
+        }
+        double[] target_FB_LR_UD = calculate_FB_LR_UD_ofVelocity(distance, targetVelocity.get());
         double target_fb = target_FB_LR_UD[0];
         double target_lr = target_FB_LR_UD[1];
         double target_ud = target_FB_LR_UD[2];
