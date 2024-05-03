@@ -84,6 +84,7 @@ public class SkeletonBowMasterEntity extends AbstractSkeleton {
     public void reassessWeaponGoal() {
     }
 
+    @Override
     public void performRangedAttack(@NotNull LivingEntity pTarget, float pDistanceFactor) {
         ItemStack itemstack = this.getProjectile(this.getItemInHand(ProjectileUtil.getWeaponHoldingHand(this, item -> item instanceof net.minecraft.world.item.BowItem)));
         AbstractArrow abstractarrow = this.getArrow(itemstack, pDistanceFactor);

@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
 
 public class NeuralNetworkUtil {
 
+    // TODO do not use absolute path
     private static final String MODEL_DIRECTORY_PATH = "/Users/wlee2019/Downloads/mod repos/skeleton bow master/src/main/java/com/leecrafts/bowmaster/util/models";
 //    private static final String MODEL_DIRECTORY_PATH = "src/main/java/com/leecrafts/bowmaster/util/models";
     private static final String MODEL_BASE_NAME = "model";

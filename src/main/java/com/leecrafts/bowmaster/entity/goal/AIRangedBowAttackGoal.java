@@ -8,7 +8,10 @@ import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.monster.RangedAttackMob;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
 import net.minecraft.world.item.BowItem;
+import net.minecraft.world.phys.Vec3;
 import org.encog.neural.networks.BasicNetwork;
+
+import static net.minecraft.SharedConstants.TICKS_PER_SECOND;
 
 public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAttackMob> extends Goal {
 
@@ -54,25 +57,89 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
         LivingEntity livingEntity = this.mob.getTarget();
         if (livingEntity != null) {
 
-            // TODO make observations
+            float f = (float)this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED);
+            float f1 = (float) (0.25 * f);
+            this.mob.setSpeed(f1);
 
-            // TODO action outputs
             BasicNetwork network = this.mob.getNetwork();
 //            NeuralNetworkUtil.printWeights(network);
 //            network.getFlat().getWeights()[0] += 94321;
-            double[] actionOutputs = NeuralNetworkUtil.computeOutput(network, new double[] {1, 1, 1, 1, 1, 1, 1, 1, 1});
+            double[] observations = getObservations(livingEntity);
+            double[] actionOutputs = NeuralNetworkUtil.computeOutput(network, observations);
             handleRightClick(livingEntity, actionOutputs[0]);
             handleMovement(actionOutputs[1], actionOutputs[2], actionOutputs[3]);
             handleStrafing(actionOutputs[4], actionOutputs[5], actionOutputs[6]);
             handleJump(actionOutputs[7]);
             handleLookDirection(actionOutputs[8], actionOutputs[9]);
 
-            float f = (float)this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED);
-            float f1 = (float) (0.25 * f);
-            this.mob.setSpeed(f1);
-
 //            spamArrows(livingEntity);
         }
+    }
+
+    public double[] getObservations(LivingEntity target) {
+        Vec3 agentPosition = this.mob.position();
+        Vec3 targetPosition = target.position();
+        Vec3 distance = targetPosition.subtract(agentPosition);
+        Vec3 distanceNormalized = distance.normalize();
+
+        // Distances
+        double horizontalDistance = Math.sqrt(distance.x * distance.x + distance.z * distance.z);
+        double verticalDistance = distance.y;
+
+        double[] target_FB_LR_UD = calculate_FB_LR_UD_ofVelocity(distance, target.getDeltaMovement());
+        double target_fb = target_FB_LR_UD[0];
+        double target_lr = target_FB_LR_UD[1];
+        double target_ud = target_FB_LR_UD[2];
+
+        // TODO observe agent velocity and opponent's projectile velocity in order to help the agent dodge. (do later)
+
+        // Differences in pitch and yaw
+        double pitchFacingTarget = Math.asin(distanceNormalized.y);
+        double yawFacingTarget = Math.atan2(distanceNormalized.x, distanceNormalized.z);
+        double pitchDifference = pitchFacingTarget - Math.toRadians(this.mob.getXRot());
+        double yawDifference = normalizeAngle(yawFacingTarget - Math.toRadians(this.mob.getYRot()));
+
+        // Health
+        double healthPercentage = this.mob.getHealth() / this.mob.getMaxHealth();
+
+        // Bow charge
+        double bowCharge = getBowChargeMeter();
+
+        return new double[] {
+                horizontalDistance, verticalDistance,
+                target_fb, target_lr, target_ud,
+                pitchDifference, yawDifference,
+                healthPercentage, bowCharge
+        };
+    }
+
+    // 3 scalar values
+    // Calculate v_forwardbackward, the object's forward/backward velocity relative to the agent
+    // Calculate v_leftright, the object's left/right velocity relative to the agent
+    // Calculate v_updown, the object's up/down velocity relative to the agent
+    private static double[] calculate_FB_LR_UD_ofVelocity(Vec3 distance, Vec3 velocity) {
+        double v_fb = velocity.dot(distance.normalize());
+
+        Vec3 up = new Vec3(0, 1, 0);
+        Vec3 vHorizontal = new Vec3(distance.x, 0, distance.z);
+        Vec3 right = vHorizontal.cross(up).normalize();
+
+        double v_lr = velocity.dot(right);
+        double v_ud = velocity.dot(up);
+
+        return new double[] {v_fb, v_lr, v_ud};
+    }
+
+    // Normalize angle to range [-pi, pi]
+    private static double normalizeAngle(double angle) {
+        while (angle > Math.PI) angle -= 2 * Math.PI;
+        while (angle < -Math.PI) angle += 2 * Math.PI;
+        return angle;
+    }
+
+    public int getBowChargeMeter() {
+        // FYI bows are fully charged after 20 ticks (1 second)
+        return Math.min(this.mob.getTicksUsingItem(), TICKS_PER_SECOND);
     }
 
     private void handleRightClick(LivingEntity target, double output) {
@@ -83,8 +150,7 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
         else {
             if (this.mob.isUsingItem()) {
                 int i = this.mob.getTicksUsingItem();
-                // TODO actually 5??
-                if (i >= 5) {
+                if (i >= 3) {
                     this.mob.performRangedAttack(target, BowItem.getPowerForTime(i));
                 }
                 this.mob.stopUsingItem();
@@ -116,14 +182,15 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
     }
 
     private void handleLookDirection(double x, double y) {
-        this.mob.setXRot((float) (this.mob.getXRot() + 360 * x));
-        this.mob.setYRot((float) (this.mob.getYRot() + 360 * y));
+        // TODO normalize angle?
+        this.mob.setXRot((float) (360 * x));
+        this.mob.setYRot((float) (360 * y));
     }
 
     private void spamArrows(LivingEntity target) {
         if (this.mob.isUsingItem()) {
             int i = this.mob.getTicksUsingItem();
-            if (i >= 5) {
+            if (i >= 3) {
                 this.mob.stopUsingItem();
                 this.mob.performRangedAttack(target, BowItem.getPowerForTime(i));
             }
