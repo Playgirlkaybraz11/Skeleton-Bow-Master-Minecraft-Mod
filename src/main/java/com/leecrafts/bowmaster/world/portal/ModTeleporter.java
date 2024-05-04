@@ -2,6 +2,8 @@ package com.leecrafts.bowmaster.world.portal;
 
 import com.leecrafts.bowmaster.capability.ModCapabilities;
 import com.leecrafts.bowmaster.capability.player.PlayerCap;
+import com.leecrafts.bowmaster.entity.ModEntityTypes;
+import com.leecrafts.bowmaster.entity.custom.SkeletonBowMasterEntity;
 import com.leecrafts.bowmaster.world.dimension.ModDimensions;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
@@ -9,6 +11,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -74,6 +77,13 @@ public class ModTeleporter implements ITeleporter {
                 } while (!isSafeToPlaceArena(destWorld, entity, playerCap.arenaDimBlockPos));
 
                 placeArena(destWorld, playerCap.arenaDimBlockPos);
+                destinationPos = destinationPos.north(ARENA_WIDTH / 4);
+                entity.setYRot(0);
+                SkeletonBowMasterEntity skeletonBowMasterEntity = ModEntityTypes.SKELETON_BOW_MASTER.get().spawn(
+                        destWorld, destinationPos.south(ARENA_WIDTH / 4), MobSpawnType.EVENT);
+                if (skeletonBowMasterEntity != null) {
+                    skeletonBowMasterEntity.setYRot(180);
+                }
             }
             else { // arena -> other dimension
                 destinationPos = new BlockPos(playerCap.outsideDimBlockPos[0], playerCap.outsideDimBlockPos[1], playerCap.outsideDimBlockPos[2]);
