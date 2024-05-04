@@ -23,6 +23,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class SkeletonBowMasterEntity extends AbstractSkeleton {
 
+    public static final boolean TRAINING = false;
     protected boolean shouldForwardImpulse = false;
     private float reward = 0.0f;
     private final BasicNetwork network;
@@ -41,7 +42,9 @@ public class SkeletonBowMasterEntity extends AbstractSkeleton {
     }
 
     public static AttributeSupplier.@NotNull Builder createAttributes() {
-        return Monster.createMonsterAttributes().add(Attributes.MOVEMENT_SPEED, 0.25D);
+        return Monster.createMonsterAttributes()
+                .add(Attributes.MOVEMENT_SPEED, 0.25D)
+                .add(Attributes.FOLLOW_RANGE, 128);
     }
 
     @Override
