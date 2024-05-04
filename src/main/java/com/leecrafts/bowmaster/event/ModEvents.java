@@ -27,6 +27,7 @@ import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.network.PacketDistributor;
@@ -66,13 +67,18 @@ public class ModEvents {
         }
 
         @SubscribeEvent
+        public static void playerInteract(PlayerInteractEvent.EntityInteract event) {
+            Player player = event.getEntity();
+            if (!player.level().isClientSide && event.getTarget() instanceof SkeletonBowMasterEntity) {
+                ModTeleporter.teleportPlayer(player);
+            }
+        }
+
+        @SubscribeEvent
         public static void hurtEntity(LivingHurtEvent event) {
             LivingEntity livingEntity = event.getEntity();
             if (!livingEntity.level().isClientSide && event.getSource().getEntity() instanceof SkeletonBowMasterEntity skeletonBowMasterEntity) {
                 skeletonBowMasterEntity.increaseReward(event.getAmount());
-                if (livingEntity instanceof Player player) {
-                    ModTeleporter.teleportPlayer(player);
-                }
             }
         }
 
