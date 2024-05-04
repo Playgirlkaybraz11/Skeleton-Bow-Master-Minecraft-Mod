@@ -203,10 +203,10 @@ public class ModTeleporter implements ITeleporter {
                 skeletonBowMasterEntity1.setYRot(0);
             }
 
-            destinationPos = destinationPos.above(15);
-            destinationPos = destinationPos.west(ARENA_WIDTH / 2);
+            destinationPos = destinationPos.above(8);
+            destinationPos = destinationPos.west(ARENA_WIDTH / 3);
             entity.setYRot(-90);
-            entity.setXRot(30);
+            entity.setXRot(40);
             if (entity instanceof ServerPlayer serverPlayer) {
                 serverPlayer.setGameMode(GameType.CREATIVE);
                 serverPlayer.getAbilities().flying = true;
