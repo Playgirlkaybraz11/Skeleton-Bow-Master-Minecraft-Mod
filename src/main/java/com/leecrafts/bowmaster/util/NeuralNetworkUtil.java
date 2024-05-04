@@ -39,7 +39,12 @@ public class NeuralNetworkUtil {
         return output.getData();
     }
 
-    private static void updateNetwork(BasicNetwork network, ArrayList<double[]> states, ArrayList<Integer> actions, ArrayList<Double> rewards, double learningRate) {
+    public static void updateNetwork(
+            BasicNetwork network,
+            ArrayList<double[]> states,
+            ArrayList<double[]> actionsLogProbs,
+            ArrayList<Double> rewards,
+            double learningRate) {
         // Calculate cumulative rewards if not already provided
         double[] cumulativeRewards = new double[rewards.size()];
         double cumulative = 0;
@@ -53,7 +58,7 @@ public class NeuralNetworkUtil {
 
         for (int t = 0; t < states.size(); t++) {
             double[] state = states.get(t);
-            int actionTaken = actions.get(t);
+            double[] logProbs = actionsLogProbs.get(t); // Log probabilities of the actions taken
             double reward = cumulativeRewards[t];
 
 //            MLData input = new BasicMLData(state);
@@ -64,11 +69,9 @@ public class NeuralNetworkUtil {
             // Calculate ∇θ log π(At|St,θ) and scale by cumulative reward Rt
             double[] policyGradients = new double[outputArray.length];
             for (int a = 0; a < outputArray.length; a++) {
-                if (a == actionTaken) {
-                    policyGradients[a] = reward * (1 - outputArray[a]); // for taken action
-                } else {
-                    policyGradients[a] = reward * (-outputArray[a]); // for not taken actions
-                }
+                // Use the stored log probability for the actual action taken
+                double logProb = logProbs[a];
+                policyGradients[a] = reward * (Math.exp(logProb) - outputArray[a]); // Gradient wrt log π(a|s,θ), exp(logProb) recovers the probability
             }
 
             // Update gradients for weights related to this action

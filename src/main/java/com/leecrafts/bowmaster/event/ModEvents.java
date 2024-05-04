@@ -12,10 +12,9 @@ import com.leecrafts.bowmaster.entity.client.SkeletonBowMasterModel;
 import com.leecrafts.bowmaster.entity.custom.SkeletonBowMasterEntity;
 import com.leecrafts.bowmaster.packet.PacketHandler;
 import com.leecrafts.bowmaster.packet.ServerboundLivingEntityVelocityPacket;
-import com.leecrafts.bowmaster.world.dimension.ModDimensions;
+import com.leecrafts.bowmaster.util.NeuralNetworkUtil;
 import com.leecrafts.bowmaster.world.portal.ModTeleporter;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -24,6 +23,7 @@ import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.common.capabilities.RegisterCapabilitiesEvent;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
@@ -31,6 +31,7 @@ import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.network.PacketDistributor;
+import org.encog.neural.networks.BasicNetwork;
 
 public class ModEvents {
 
@@ -78,7 +79,26 @@ public class ModEvents {
         public static void hurtEntity(LivingHurtEvent event) {
             LivingEntity livingEntity = event.getEntity();
             if (!livingEntity.level().isClientSide && event.getSource().getEntity() instanceof SkeletonBowMasterEntity skeletonBowMasterEntity) {
-                skeletonBowMasterEntity.increaseReward(event.getAmount());
+                skeletonBowMasterEntity.storeRewards(event.getAmount());
+            }
+        }
+
+        @SubscribeEvent
+        public static void skeletonBowMasterTrainBattleEnd(LivingDeathEvent event) {
+            if (event.getEntity() instanceof SkeletonBowMasterEntity loser &&
+                    !loser.level().isClientSide &&
+                    event.getSource().getEntity() instanceof SkeletonBowMasterEntity winner) {
+                // update network from both the winner's and loser's data
+                // TODO consider learning rate decay
+                BasicNetwork network = winner.getNetwork(); // winner and loser have the same network
+                double learningRate = 0.1;
+                NeuralNetworkUtil.updateNetwork(
+                        network, winner.getStates(), winner.getActions(), winner.getRewards(), learningRate);
+                NeuralNetworkUtil.updateNetwork(
+                        network, loser.getStates(), loser.getActions(), loser.getRewards(), learningRate);
+
+                // save network
+                NeuralNetworkUtil.saveModel(network);
             }
         }
 

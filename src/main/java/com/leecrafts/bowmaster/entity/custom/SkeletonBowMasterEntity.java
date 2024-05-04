@@ -4,7 +4,6 @@ import com.leecrafts.bowmaster.entity.goal.AIRangedBowAttackGoal;
 import com.leecrafts.bowmaster.util.NeuralNetworkUtil;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
-import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
@@ -21,12 +20,16 @@ import net.minecraft.world.phys.Vec3;
 import org.encog.neural.networks.BasicNetwork;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
+
 public class SkeletonBowMasterEntity extends AbstractSkeleton {
 
-    public static final boolean TRAINING = false;
+    public static final boolean TRAINING = true;
     protected boolean shouldForwardImpulse = false;
-    private float reward = 0.0f;
     private final BasicNetwork network;
+    private final ArrayList<double[]> states = new ArrayList<>();
+    private final ArrayList<double[]> actions = new ArrayList<>();
+    private final ArrayList<Double> rewards = new ArrayList<>();
 
     public SkeletonBowMasterEntity(EntityType<? extends AbstractSkeleton> pEntityType, Level pLevel) {
         super(pEntityType, pLevel);
@@ -47,19 +50,21 @@ public class SkeletonBowMasterEntity extends AbstractSkeleton {
                 .add(Attributes.FOLLOW_RANGE, 128);
     }
 
-    @Override
-    public void die(@NotNull DamageSource pDamageSource) {
-        super.die(pDamageSource);
-        if (!this.level().isClientSide) {
-            NeuralNetworkUtil.saveModel(this.network);
-            System.out.println(this.reward);
-        }
-    }
+    // TODO delete?
+//    @Override
+//    public void die(@NotNull DamageSource pDamageSource) {
+//        super.die(pDamageSource);
+//        if (!this.level().isClientSide) {
+//            NeuralNetworkUtil.saveModel(this.network);
+//            System.out.println(this.reward);
+//        }
+//    }
 
-    @Override
-    public void tick() {
-        super.tick();
-    }
+    // TODO delete?
+//    @Override
+//    public void tick() {
+//        super.tick();
+//    }
 
     @Override
     public void setZza(float pAmount) {
@@ -103,8 +108,33 @@ public class SkeletonBowMasterEntity extends AbstractSkeleton {
         this.level().addFreshEntity(abstractarrow);
     }
 
-    public void increaseReward(float amount) {
-        this.reward += amount;
+    public void storeStates(double[] observations) {
+        this.states.add(observations);
+    }
+
+    public void storeActions(double[] actionOutputs) {
+        this.actions.add(actionOutputs);
+    }
+
+    public void storeRewards(double reward) {
+        if (reward > 0) {
+            this.rewards.set(this.rewards.size() - 1, reward);
+        }
+        else {
+            this.rewards.add(reward);
+        }
+    }
+
+    public ArrayList<double[]> getStates() {
+        return this.states;
+    }
+
+    public ArrayList<double[]> getActions() {
+        return this.actions;
+    }
+
+    public ArrayList<Double> getRewards() {
+        return this.rewards;
     }
 
 }
