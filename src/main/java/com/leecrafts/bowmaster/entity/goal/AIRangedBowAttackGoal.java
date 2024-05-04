@@ -84,9 +84,14 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
             handleStrafing(actionOutputs[6], actionOutputs[7], actionOutputs[8]);
             handleJump(actionOutputs[9]);
 
+            double[] logProbabilities = new double[actionOutputs.length];
+            for (int i = 0; i < actionOutputs.length; i++) {
+                logProbabilities[i] = Math.log(actionOutputs[i]);
+            }
+
             // update state, action, and reward storage
             this.mob.storeStates(observations);
-            this.mob.storeActions(actionOutputs);
+            this.mob.storeActions(logProbabilities);
             this.mob.storeRewards(0);
 
         }
