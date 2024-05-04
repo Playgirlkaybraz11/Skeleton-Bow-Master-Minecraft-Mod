@@ -19,6 +19,7 @@ public class ModEntityTypes {
             ENTITY_TYPES.register("skeleton_bow_master",
                     () -> EntityType.Builder.of(SkeletonBowMasterEntity::new, MobCategory.MONSTER)
                             .sized(0.6F, 1.8F)
+                            .fireImmune()
                             .build(new ResourceLocation(SkeletonBowMaster.MODID, "skeleton_bow_master").toString()));
 
     public static void register(IEventBus eventBus) {
