@@ -13,6 +13,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -77,13 +78,7 @@ public class ModTeleporter implements ITeleporter {
                 } while (!isSafeToPlaceArena(destWorld, entity, playerCap.arenaDimBlockPos));
 
                 placeArena(destWorld, playerCap.arenaDimBlockPos);
-                destinationPos = destinationPos.north(ARENA_WIDTH / 4);
-                entity.setYRot(0);
-                SkeletonBowMasterEntity skeletonBowMasterEntity = ModEntityTypes.SKELETON_BOW_MASTER.get().spawn(
-                        destWorld, destinationPos.south(ARENA_WIDTH / 4), MobSpawnType.EVENT);
-                if (skeletonBowMasterEntity != null) {
-                    skeletonBowMasterEntity.setYRot(180);
-                }
+                placePlayerAndSkeletonBowMaster(entity, destWorld);
             }
             else { // arena -> other dimension
                 destinationPos = new BlockPos(playerCap.outsideDimBlockPos[0], playerCap.outsideDimBlockPos[1], playerCap.outsideDimBlockPos[2]);
@@ -192,6 +187,35 @@ public class ModTeleporter implements ITeleporter {
 
     public static void setBlock(int x, int y, int z, ServerLevel serverLevel, Block block) {
         serverLevel.setBlock(new BlockPos(x, y, z), block.defaultBlockState(), 3);
+    }
+
+    private static void placePlayerAndSkeletonBowMaster(Entity entity, ServerLevel destWorld) {
+        SkeletonBowMasterEntity skeletonBowMasterEntity = ModEntityTypes.SKELETON_BOW_MASTER.get().spawn(
+                destWorld, destinationPos.south(ARENA_WIDTH / 4), MobSpawnType.EVENT);
+        if (skeletonBowMasterEntity != null) {
+            skeletonBowMasterEntity.setYRot(180);
+        }
+
+        if (SkeletonBowMasterEntity.TRAINING) {
+            SkeletonBowMasterEntity skeletonBowMasterEntity1 = ModEntityTypes.SKELETON_BOW_MASTER.get().spawn(
+                    destWorld, destinationPos.north(ARENA_WIDTH / 4), MobSpawnType.EVENT);
+            if (skeletonBowMasterEntity1 != null) {
+                skeletonBowMasterEntity1.setYRot(0);
+            }
+
+            destinationPos = destinationPos.above(15);
+            destinationPos = destinationPos.west(ARENA_WIDTH / 2);
+            entity.setYRot(-90);
+            entity.setXRot(30);
+            if (entity instanceof ServerPlayer serverPlayer) {
+                serverPlayer.setGameMode(GameType.CREATIVE);
+                serverPlayer.getAbilities().flying = true;
+            }
+        }
+        else {
+            destinationPos = destinationPos.north(ARENA_WIDTH / 4);
+            entity.setYRot(0);
+        }
     }
 
 }
