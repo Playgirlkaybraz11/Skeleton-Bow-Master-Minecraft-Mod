@@ -70,8 +70,6 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
 
             // observations
             BasicNetwork network = this.mob.getNetwork();
-//            NeuralNetworkUtil.printWeights(network);
-//            network.getFlat().getWeights()[0] += 94321;
             double[] observations = getObservations(livingEntity, distance, pitchFacingTarget, yawFacingTarget);
 
             // actions
@@ -84,15 +82,17 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
             handleStrafing(actionOutputs[6], actionOutputs[7], actionOutputs[8]);
             handleJump(actionOutputs[9]);
 
-            double[] logProbabilities = new double[actionOutputs.length];
-            for (int i = 0; i < actionOutputs.length; i++) {
-                logProbabilities[i] = Math.log(actionOutputs[i]);
-            }
+            if (SkeletonBowMasterEntity.TRAINING) {
+                double[] logProbabilities = new double[actionOutputs.length];
+                for (int i = 0; i < actionOutputs.length; i++) {
+                    logProbabilities[i] = Math.log(actionOutputs[i]);
+                }
 
-            // update state, action, and reward storage
-            this.mob.storeStates(observations);
-            this.mob.storeActions(logProbabilities);
-            this.mob.storeRewards(0);
+                // update state, action, and reward storage
+                this.mob.storeStates(observations);
+                this.mob.storeActions(logProbabilities);
+                this.mob.storeRewards(-0.005);
+            }
 
         }
     }
