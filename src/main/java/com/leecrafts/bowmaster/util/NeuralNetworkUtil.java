@@ -24,7 +24,7 @@ public class NeuralNetworkUtil {
     public static BasicNetwork createNetwork() {
         FeedForwardPattern pattern = new FeedForwardPattern();
         pattern.setInputNeurons(INPUT_SIZE);
-        pattern.addHiddenLayer(32);
+        pattern.addHiddenLayer(32); // TODO add more layers?
         pattern.setOutputNeurons(OUTPUT_SIZE);
         pattern.setActivationFunction(new ActivationSoftMax()); // output of softmax is (0, 1)
 
@@ -58,9 +58,10 @@ public class NeuralNetworkUtil {
             double reward = cumulativeRewards[t];
 
             // Forward pass to compute outputs
-            MLData input = new BasicMLData(state);
-            MLData output = network.compute(input);
-            double[] outputArray = output.getData(); // These are the probabilities from the network output
+//            MLData input = new BasicMLData(state);
+//            MLData output = network.compute(input);
+//            double[] outputArray = output.getData(); // These are the probabilities from the network output
+            double[] outputArray = computeOutput(network, state);
 
             // Calculate policy gradients for the output layer
             double[] outputGradients = new double[outputArray.length];
@@ -98,68 +99,6 @@ public class NeuralNetworkUtil {
         }
     }
 
-//    public static void updateNetwork(
-//            BasicNetwork network,
-//            ArrayList<double[]> states,
-//            ArrayList<double[]> actionsLogProbs,
-//            ArrayList<Double> rewards,
-//            double learningRate) {
-//        if (states.size() != actionsLogProbs.size() || states.size() != rewards.size()) {
-//            System.out.println("updating of networks failed because the state space, action space, and reward space are not the same size.");
-//            return;
-//        }
-//
-//        // Calculate cumulative rewards if not already provided
-//        double[] cumulativeRewards = new double[rewards.size()];
-//        double cumulative = 0;
-//        for (int i = rewards.size() - 1; i >= 0; i--) {
-//            cumulative = rewards.get(i) + cumulative * 0.99; // assuming gamma = 0.99
-//            cumulativeRewards[i] = cumulative;
-//        }
-//
-//        // Gradient for each weight
-//        double[] weightGradients = new double[network.getFlat().getWeights().length];
-//
-//        for (int t = 0; t < states.size(); t++) {
-//            double[] state = states.get(t);
-//            double[] logProbs = actionsLogProbs.get(t); // Log probabilities of the actions taken
-//            double reward = cumulativeRewards[t];
-//
-////            MLData input = new BasicMLData(state);
-////            MLData output = network.compute(input);
-////            double[] outputArray = output.getData();
-//            double[] outputArray = computeOutput(network, state);
-//
-//            // Calculate ∇θ log π(At|St,θ) and scale by cumulative reward Rt
-//            double[] policyGradients = new double[outputArray.length];
-//            for (int a = 0; a < outputArray.length; a++) {
-//                // Use the stored log probability for the actual action taken
-//                double logProb = logProbs[a];
-//                policyGradients[a] = reward * (Math.exp(logProb) - outputArray[a]); // Gradient wrt log π(a|s,θ), exp(logProb) recovers the probability
-//            }
-//
-//            // Update gradients for weights related to this action
-//            int weightIndex = 0;
-//            for (int layer = 1; layer < network.getLayerCount(); layer++) {
-//                int layerSize = network.getLayerNeuronCount(layer);
-//                int previousLayerSize = network.getLayerNeuronCount(layer - 1);
-//                for (int neuron = 0; neuron < layerSize; neuron++) {
-//                    for (int prevNeuron = 0; prevNeuron < previousLayerSize; prevNeuron++) {
-//                        double inputVal = network.getLayerOutput(layer - 1, prevNeuron);
-//                        weightGradients[weightIndex] += policyGradients[neuron] * inputVal;
-//                        weightIndex++;
-//                    }
-//                }
-//            }
-//        }
-//
-//        // Apply gradients to weights
-//        double[] weights = network.getFlat().getWeights();
-//        for (int i = 0; i < weights.length; i++) {
-//            weights[i] += learningRate * weightGradients[i]; // gradient ascent (maximizing reward)
-//        }
-//    }
-
     public static void saveModel(BasicNetwork network) {
         EncogDirectoryPersistence.saveObject(file(getNewestModelNumber() + 1), network);
     }
@@ -169,12 +108,13 @@ public class NeuralNetworkUtil {
     }
 
     public static BasicNetwork loadOrCreateModel(int modelNumber) {
-        // TODO what if there are no models in the directory?
         File file = file(modelNumber);
         if (file.exists()) {
+            System.out.println("existing model found (" + modelNumber + ")");
             return (BasicNetwork) EncogDirectoryPersistence.loadObject(file);
         }
         else {
+            System.out.println("no model found, so creating new one");
             return createNetwork();
         }
     }

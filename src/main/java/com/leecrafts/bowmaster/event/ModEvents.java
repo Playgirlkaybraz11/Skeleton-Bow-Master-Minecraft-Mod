@@ -14,9 +14,12 @@ import com.leecrafts.bowmaster.packet.PacketHandler;
 import com.leecrafts.bowmaster.packet.ServerboundLivingEntityVelocityPacket;
 import com.leecrafts.bowmaster.util.NeuralNetworkUtil;
 import com.leecrafts.bowmaster.world.portal.ModTeleporter;
+import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
@@ -32,6 +35,8 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.network.PacketDistributor;
 import org.encog.neural.networks.BasicNetwork;
+
+import static com.leecrafts.bowmaster.world.portal.ModTeleporter.ARENA_WIDTH;
 
 public class ModEvents {
 
@@ -85,7 +90,8 @@ public class ModEvents {
 
         @SubscribeEvent
         public static void skeletonBowMasterTrainBattleEnd(LivingDeathEvent event) {
-            if (event.getEntity() instanceof SkeletonBowMasterEntity loser &&
+            if (SkeletonBowMasterEntity.TRAINING &&
+                    event.getEntity() instanceof SkeletonBowMasterEntity loser &&
                     !loser.level().isClientSide &&
                     event.getSource().getEntity() instanceof SkeletonBowMasterEntity winner) {
                 // update network from both the winner's and loser's data
@@ -97,8 +103,33 @@ public class ModEvents {
                 NeuralNetworkUtil.updateNetwork(
                         network, loser.getStates(), loser.getActions(), loser.getRewards(), learningRate);
 
-                // save network
-                NeuralNetworkUtil.saveModel(network);
+                // In Java's Thread, the lines of code will execute sequentially.
+                // This will ensure that process of saving the network as a file will complete before the newly spawned
+                // skeleton bow masters load the newest saved network.
+                new Thread(() -> {
+                    // save network
+                    NeuralNetworkUtil.saveModel(network);
+
+                    // start battle again
+                    Player spectator = winner.level().getNearestPlayer(winner, 200);
+                    if (spectator != null && winner.level() instanceof ServerLevel serverLevel) {
+                        spectator.getCapability(ModCapabilities.PLAYER_CAPABILITY).ifPresent(iPlayerCap -> {
+                            PlayerCap playerCap = (PlayerCap) iPlayerCap;
+                            BlockPos center = new BlockPos(playerCap.arenaDimBlockPos[0], playerCap.arenaDimBlockPos[1], playerCap.arenaDimBlockPos[2]);
+                            SkeletonBowMasterEntity skeletonBowMasterEntity = ModEntityTypes.SKELETON_BOW_MASTER.get().spawn(
+                                    serverLevel, center.south(ARENA_WIDTH / 4), MobSpawnType.EVENT);
+                            if (skeletonBowMasterEntity != null) {
+                                skeletonBowMasterEntity.setYRot(180);
+                            }
+                            SkeletonBowMasterEntity skeletonBowMasterEntity1 = ModEntityTypes.SKELETON_BOW_MASTER.get().spawn(
+                                    serverLevel, center.north(ARENA_WIDTH / 4), MobSpawnType.EVENT);
+                            if (skeletonBowMasterEntity1 != null) {
+                                skeletonBowMasterEntity1.setYRot(0);
+                            }
+                        });
+                    }
+                    winner.kill();
+                }).start();
             }
         }
 

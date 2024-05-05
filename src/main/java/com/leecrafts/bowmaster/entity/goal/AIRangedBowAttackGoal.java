@@ -210,7 +210,8 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
             int i = this.mob.getTicksUsingItem();
             if (i >= 3) {
                 this.mob.stopUsingItem();
-                this.mob.performRangedAttack(target, BowItem.getPowerForTime(20));
+//                this.mob.performRangedAttack(target, BowItem.getPowerForTime(i));
+                this.mob.performRangedAttack(target, 3);
             }
         }
         else {
