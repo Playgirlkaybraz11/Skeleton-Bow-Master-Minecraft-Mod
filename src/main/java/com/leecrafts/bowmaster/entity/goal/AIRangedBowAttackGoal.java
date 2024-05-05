@@ -76,10 +76,10 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
 
             // actions
             double[] actionOutputs = NeuralNetworkUtil.computeOutput(network, observations);
-            handleLookDirection(actionOutputs[0], actionOutputs[1], pitchFacingTarget, yawFacingTarget);
-//            handleLookDirection(0, 0, pitchFacingTarget, yawFacingTarget);
-            handleRightClick(livingEntity, actionOutputs[2]);
-//            spamArrows(livingEntity);
+//            handleLookDirection(actionOutputs[0], actionOutputs[1], pitchFacingTarget, yawFacingTarget);
+            handleLookDirection(0.5, 0.5, pitchFacingTarget, yawFacingTarget);
+//            handleRightClick(livingEntity, actionOutputs[2]);
+            spamArrows(livingEntity);
             handleMovement(actionOutputs[3], actionOutputs[4], actionOutputs[5]);
             handleStrafing(actionOutputs[6], actionOutputs[7], actionOutputs[8]);
             handleJump(actionOutputs[9]);

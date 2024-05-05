@@ -117,7 +117,7 @@ public class SkeletonBowMasterEntity extends AbstractSkeleton {
     }
 
     public void storeRewards(double reward) {
-        if (reward > 0) {
+        if (!this.rewards.isEmpty() && reward > 0) {
             this.rewards.set(this.rewards.size() - 1, reward);
         }
         else {
