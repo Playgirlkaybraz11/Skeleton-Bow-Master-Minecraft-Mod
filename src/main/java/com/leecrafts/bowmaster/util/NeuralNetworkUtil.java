@@ -39,7 +39,12 @@ public class NeuralNetworkUtil {
         return output.getData();
     }
 
-    public static void updateNetwork(BasicNetwork network, ArrayList<double[]> states, ArrayList<double[]> actionsLogProbs, ArrayList<Double> rewards, double learningRate) {
+    public static void updateNetwork(
+            BasicNetwork network,
+            ArrayList<double[]> states,
+            ArrayList<double[]> actionsLogProbs,
+            ArrayList<Double> rewards,
+            double learningRate) {
         // Calculate cumulative rewards if not already provided
         double[] cumulativeRewards = new double[rewards.size()];
         double cumulative = 0;
@@ -58,9 +63,6 @@ public class NeuralNetworkUtil {
             double reward = cumulativeRewards[t];
 
             // Forward pass to compute outputs
-//            MLData input = new BasicMLData(state);
-//            MLData output = network.compute(input);
-//            double[] outputArray = output.getData(); // These are the probabilities from the network output
             double[] outputArray = computeOutput(network, state);
 
             // Calculate policy gradients for the output layer

@@ -81,7 +81,7 @@ public class ModTeleporter implements ITeleporter {
                 placePlayerAndSkeletonBowMaster(entity, destWorld);
             }
             else { // arena -> other dimension
-                destinationPos = new BlockPos(playerCap.outsideDimBlockPos[0], playerCap.outsideDimBlockPos[1], playerCap.outsideDimBlockPos[2]);
+                destinationPos = playerCap.getOutsideDimBlockPos();
                 int tries = 0;
                 while((destWorld.getBlockState(destinationPos).getBlock() != Blocks.AIR) &&
                         !destWorld.getBlockState(destinationPos).canBeReplaced(Fluids.WATER) &&
@@ -190,18 +190,10 @@ public class ModTeleporter implements ITeleporter {
     }
 
     private static void placePlayerAndSkeletonBowMaster(Entity entity, ServerLevel destWorld) {
-        SkeletonBowMasterEntity skeletonBowMasterEntity = ModEntityTypes.SKELETON_BOW_MASTER.get().spawn(
-                destWorld, destinationPos.south(ARENA_WIDTH / 4), MobSpawnType.EVENT);
-        if (skeletonBowMasterEntity != null) {
-            skeletonBowMasterEntity.setYRot(180);
-        }
+        spawnSkeletonBowMaster(destinationPos, destWorld, -ARENA_WIDTH / 4);
 
         if (SkeletonBowMasterEntity.TRAINING) {
-            SkeletonBowMasterEntity skeletonBowMasterEntity1 = ModEntityTypes.SKELETON_BOW_MASTER.get().spawn(
-                    destWorld, destinationPos.north(ARENA_WIDTH / 4), MobSpawnType.EVENT);
-            if (skeletonBowMasterEntity1 != null) {
-                skeletonBowMasterEntity1.setYRot(0);
-            }
+            spawnSkeletonBowMaster(destinationPos, destWorld, ARENA_WIDTH / 4);
 
             destinationPos = destinationPos.above(8);
             destinationPos = destinationPos.west(ARENA_WIDTH / 3);
@@ -215,6 +207,14 @@ public class ModTeleporter implements ITeleporter {
         else {
             destinationPos = destinationPos.north(ARENA_WIDTH / 4);
             entity.setYRot(0);
+        }
+    }
+
+    public static void spawnSkeletonBowMaster(BlockPos center, ServerLevel serverLevel, int offset) {
+        SkeletonBowMasterEntity skeletonBowMasterEntity = ModEntityTypes.SKELETON_BOW_MASTER.get().spawn(
+                serverLevel, center.north(offset), MobSpawnType.EVENT);
+        if (skeletonBowMasterEntity != null) {
+            skeletonBowMasterEntity.setYRot(offset >= 0 ? 0 : 180);
         }
     }
 

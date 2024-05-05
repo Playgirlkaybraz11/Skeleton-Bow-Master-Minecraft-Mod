@@ -24,6 +24,8 @@ public class PlayerCapProvider implements ICapabilitySerializable<CompoundTag> {
         CompoundTag nbt = new CompoundTag();
         if (ModCapabilities.PLAYER_CAPABILITY == null) return nbt;
         nbt.putIntArray("outside_dim_block_pos", playerCap.outsideDimBlockPos);
+        nbt.putIntArray("arena_dim_block_pos", playerCap.arenaDimBlockPos);
+        nbt.putInt("after_train_battle_counter", playerCap.afterTrainBattleCounter);
         return nbt;
     }
 
@@ -31,6 +33,8 @@ public class PlayerCapProvider implements ICapabilitySerializable<CompoundTag> {
     public void deserializeNBT(CompoundTag nbt) {
         if (ModCapabilities.PLAYER_CAPABILITY != null) {
             playerCap.outsideDimBlockPos = nbt.getIntArray("outside_dim_block_pos");
+            playerCap.arenaDimBlockPos = nbt.getIntArray("arena_dim_block_pos");
+            playerCap.afterTrainBattleCounter = nbt.getInt("after_train_battle_counter");
         }
     }
 

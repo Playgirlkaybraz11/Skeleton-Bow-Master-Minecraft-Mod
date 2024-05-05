@@ -19,7 +19,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
@@ -103,33 +102,20 @@ public class ModEvents {
                 NeuralNetworkUtil.updateNetwork(
                         network, loser.getStates(), loser.getActions(), loser.getRewards(), learningRate);
 
-                // In Java's Thread, the lines of code will execute sequentially.
-                // This will ensure that process of saving the network as a file will complete before the newly spawned
-                // skeleton bow masters load the newest saved network.
-                new Thread(() -> {
-                    // save network
-                    NeuralNetworkUtil.saveModel(network);
+                // save network
+                NeuralNetworkUtil.saveModel(network);
+                Player spectator = winner.level().getNearestPlayer(winner, 200);
+                if (spectator != null) {
+                    spectator.getCapability(ModCapabilities.PLAYER_CAPABILITY).ifPresent(iPlayerCap -> {
+                        PlayerCap playerCap = (PlayerCap) iPlayerCap;
+                        // Starting a timer before spawning new skeleton bow masters
+                        // This will ensure that the process of saving the network as a file will complete before the newly
+                        // spawned skeleton bow masters load that network.
+                        playerCap.afterTrainBattleCounter = 0;
+                    });
+                }
 
-                    // start battle again
-                    Player spectator = winner.level().getNearestPlayer(winner, 200);
-                    if (spectator != null && winner.level() instanceof ServerLevel serverLevel) {
-                        spectator.getCapability(ModCapabilities.PLAYER_CAPABILITY).ifPresent(iPlayerCap -> {
-                            PlayerCap playerCap = (PlayerCap) iPlayerCap;
-                            BlockPos center = new BlockPos(playerCap.arenaDimBlockPos[0], playerCap.arenaDimBlockPos[1], playerCap.arenaDimBlockPos[2]);
-                            SkeletonBowMasterEntity skeletonBowMasterEntity = ModEntityTypes.SKELETON_BOW_MASTER.get().spawn(
-                                    serverLevel, center.south(ARENA_WIDTH / 4), MobSpawnType.EVENT);
-                            if (skeletonBowMasterEntity != null) {
-                                skeletonBowMasterEntity.setYRot(180);
-                            }
-                            SkeletonBowMasterEntity skeletonBowMasterEntity1 = ModEntityTypes.SKELETON_BOW_MASTER.get().spawn(
-                                    serverLevel, center.north(ARENA_WIDTH / 4), MobSpawnType.EVENT);
-                            if (skeletonBowMasterEntity1 != null) {
-                                skeletonBowMasterEntity1.setYRot(0);
-                            }
-                        });
-                    }
-                    winner.kill();
-                }).start();
+                winner.kill();
             }
         }
 
@@ -144,6 +130,7 @@ public class ModEvents {
                     PlayerCap playerCap1 = (PlayerCap) iPlayerCap1;
                     playerCap1.outsideDimBlockPos = playerCap.outsideDimBlockPos;
                     playerCap1.arenaDimBlockPos = playerCap.arenaDimBlockPos;
+                    playerCap1.afterTrainBattleCounter = playerCap.afterTrainBattleCounter;
                 });
             });
             originalPlayer.invalidateCaps();
@@ -153,8 +140,32 @@ public class ModEvents {
         public static void livingTickEvent(LivingEvent.LivingTickEvent event) {
             LivingEntity livingEntity = event.getEntity();
             if (livingEntity.level().isClientSide) {
+                // Sending livingEntity deltaMovement (velocity) data to the server so that the skeleton bow master
+                // can read the velocity of its opponents
                 PacketHandler.INSTANCE.send(new ServerboundLivingEntityVelocityPacket(
                         livingEntity.getId(), livingEntity.getDeltaMovement()), PacketDistributor.SERVER.noArg());
+            }
+            else {
+                if (SkeletonBowMasterEntity.TRAINING &&
+                        livingEntity instanceof Player player &&
+                        player.level() instanceof ServerLevel serverLevel) {
+                    player.getCapability(ModCapabilities.PLAYER_CAPABILITY).ifPresent(iPlayerCap -> {
+                        PlayerCap playerCap = (PlayerCap) iPlayerCap;
+                        if (playerCap.afterTrainBattleCounter >= 0) {
+                            if (playerCap.afterTrainBattleCounter >= PlayerCap.afterTrainBattleCounterLimit) {
+                                if (playerCap.arenaDimBlockPos.length > 0) {
+                                    BlockPos center = playerCap.getArenaDimBlockPos();
+                                    ModTeleporter.spawnSkeletonBowMaster(center, serverLevel, ARENA_WIDTH / 4);
+                                    ModTeleporter.spawnSkeletonBowMaster(center, serverLevel, -ARENA_WIDTH / 4);
+                                }
+                                playerCap.afterTrainBattleCounter = -1;
+                            }
+                            else {
+                                playerCap.afterTrainBattleCounter++;
+                            }
+                        }
+                    });
+                }
             }
         }
 
