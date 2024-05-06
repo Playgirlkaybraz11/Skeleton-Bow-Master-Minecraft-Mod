@@ -97,10 +97,11 @@ public class ModEvents {
                 // TODO consider learning rate decay
                 BasicNetwork network = winner.getNetwork(); // winner and loser have the same network
                 double learningRate = 0.1;
+                double gamma = 0.99;
                 NeuralNetworkUtil.updateNetwork(
-                        network, winner.getStates(), winner.getActions(), winner.getRewards(), learningRate);
+                        network, winner.getStates(), winner.getActions(), winner.getRewards(), learningRate, gamma);
                 NeuralNetworkUtil.updateNetwork(
-                        network, loser.getStates(), loser.getActions(), loser.getRewards(), learningRate);
+                        network, loser.getStates(), loser.getActions(), loser.getRewards(), learningRate, gamma);
 
                 // save network
                 NeuralNetworkUtil.saveModel(network);

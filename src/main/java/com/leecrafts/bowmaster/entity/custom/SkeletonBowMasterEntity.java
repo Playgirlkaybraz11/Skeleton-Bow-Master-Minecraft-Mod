@@ -51,22 +51,6 @@ public class SkeletonBowMasterEntity extends AbstractSkeleton {
                 .add(Attributes.FOLLOW_RANGE, 128);
     }
 
-    // TODO delete?
-//    @Override
-//    public void die(@NotNull DamageSource pDamageSource) {
-//        super.die(pDamageSource);
-//        if (!this.level().isClientSide) {
-//            NeuralNetworkUtil.saveModel(this.network);
-//            System.out.println(this.reward);
-//        }
-//    }
-
-    // TODO delete?
-//    @Override
-//    public void tick() {
-//        super.tick();
-//    }
-
     @Override
     public void setZza(float pAmount) {
         if ((this.shouldForwardImpulse && pAmount != 0) ||

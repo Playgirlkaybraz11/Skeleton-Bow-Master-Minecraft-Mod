@@ -44,12 +44,13 @@ public class NeuralNetworkUtil {
             ArrayList<double[]> states,
             ArrayList<double[]> actionsLogProbs,
             ArrayList<Double> rewards,
-            double learningRate) {
-        // Calculate cumulative rewards if not already provided
+            double learningRate,
+            double gamma) {
+        // cumulative rewards if not already provided
         double[] cumulativeRewards = new double[rewards.size()];
         double cumulative = 0;
         for (int i = rewards.size() - 1; i >= 0; i--) {
-            cumulative = rewards.get(i) + cumulative * 0.99; // assuming gamma = 0.99
+            cumulative = rewards.get(i) + cumulative * gamma;
             cumulativeRewards[i] = cumulative;
         }
 
@@ -72,25 +73,24 @@ public class NeuralNetworkUtil {
             }
 
             // Backpropagate the error
-            double[] deltas = outputGradients; // Start with gradient from output
             for (int layer = network.getLayerCount() - 1; layer > 0; layer--) {
                 int layerSize = network.getLayerNeuronCount(layer);
                 int previousLayerSize = network.getLayerNeuronCount(layer - 1);
 
                 double[] newDeltas = new double[previousLayerSize];
 
-                int weightIndex = 0; // Start from the beginning of the weights array
-                for (int l = 1; l < layer; l++) { // Accumulate weights from all previous layers up to the one right before the current
+                int weightIndex = 0;
+                for (int l = 1; l < layer; l++) {
                     weightIndex += network.getLayerNeuronCount(l - 1) * network.getLayerNeuronCount(l);
                 }
                 for (int j = 0; j < previousLayerSize; j++) {
                     for (int k = 0; k < layerSize; k++) {
-                        weightGradients[weightIndex] += deltas[k] * network.getLayerOutput(layer - 1, j);
-                        newDeltas[j] += deltas[k] * network.getFlat().getWeights()[weightIndex];
+                        weightGradients[weightIndex] += outputGradients[k] * network.getLayerOutput(layer - 1, j);
+                        newDeltas[j] += outputGradients[k] * network.getFlat().getWeights()[weightIndex];
                         weightIndex++;
                     }
                 }
-                deltas = newDeltas; // Prepare deltas for the previous layer
+                outputGradients = newDeltas;
             }
         }
 

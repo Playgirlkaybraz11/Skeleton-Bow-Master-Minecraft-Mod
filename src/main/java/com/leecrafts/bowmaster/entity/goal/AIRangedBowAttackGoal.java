@@ -74,7 +74,7 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
 
             // actions
             double[] actionOutputs = NeuralNetworkUtil.computeOutput(network, observations);
-            boolean killerModeEnabled = true; // sounds cool, but it's only for testing
+            boolean killerModeEnabled = false; // sounds cool, but it's only for testing
             if (!killerModeEnabled) {
                 handleLookDirection(actionOutputs[0], actionOutputs[1], pitchFacingTarget, yawFacingTarget);
                 handleRightClick(livingEntity, actionOutputs[2]);
