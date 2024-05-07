@@ -94,14 +94,11 @@ public class ModEvents {
                     !loser.level().isClientSide &&
                     event.getSource().getEntity() instanceof SkeletonBowMasterEntity winner) {
                 // update network from both the winner's and loser's data
-                // TODO consider learning rate decay
                 BasicNetwork network = winner.getNetwork(); // winner and loser have the same network
-                double learningRate = 0.1;
-                double gamma = 0.99;
                 NeuralNetworkUtil.updateNetwork(
-                        network, winner.getStates(), winner.getActions(), winner.getRewards(), learningRate, gamma);
+                        network, winner.getStates(), winner.getActions(), winner.getRewards());
                 NeuralNetworkUtil.updateNetwork(
-                        network, loser.getStates(), loser.getActions(), loser.getRewards(), learningRate, gamma);
+                        network, loser.getStates(), loser.getActions(), loser.getRewards());
 
                 // save network
                 NeuralNetworkUtil.saveModel(network);

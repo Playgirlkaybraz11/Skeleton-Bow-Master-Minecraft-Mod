@@ -20,6 +20,12 @@ public class NeuralNetworkUtil {
     private static final String MODEL_BASE_NAME = "model";
     private static final int INPUT_SIZE = 9;
     private static final int OUTPUT_SIZE = 10;
+    private static double LEARNING_RATE = 0.1;
+    private static final double GAMMA = 0.99;
+    public static double EPSILON = 0.9;
+    public static final double EPSILON_MAX = 0.9;
+    public static final double EPSILON_MIN = 0.1;
+    public static final double EPSILON_DECAY = 0.008; // linear epsilon decay
 
     public static BasicNetwork createNetwork() {
         FeedForwardPattern pattern = new FeedForwardPattern();
@@ -43,14 +49,12 @@ public class NeuralNetworkUtil {
             BasicNetwork network,
             ArrayList<double[]> states,
             ArrayList<double[]> actionsLogProbs,
-            ArrayList<Double> rewards,
-            double learningRate,
-            double gamma) {
+            ArrayList<Double> rewards) {
         // cumulative rewards if not already provided
         double[] cumulativeRewards = new double[rewards.size()];
         double cumulative = 0;
         for (int i = rewards.size() - 1; i >= 0; i--) {
-            cumulative = rewards.get(i) + cumulative * gamma;
+            cumulative = rewards.get(i) + cumulative * GAMMA;
             cumulativeRewards[i] = cumulative;
         }
 
@@ -97,7 +101,7 @@ public class NeuralNetworkUtil {
         // Update weights using the gradients
         double[] weights = network.getFlat().getWeights();
         for (int i = 0; i < weights.length; i++) {
-            weights[i] -= learningRate * weightGradients[i]; // Apply gradient descent
+            weights[i] -= LEARNING_RATE * weightGradients[i]; // Apply gradient descent
         }
     }
 
@@ -110,6 +114,9 @@ public class NeuralNetworkUtil {
     }
 
     public static BasicNetwork loadOrCreateModel(int modelNumber) {
+        // TODO consider learning rate decay
+        // TODO consider epsilon decay
+        EPSILON = Math.max(EPSILON_MAX - EPSILON_DECAY * (modelNumber + 1), EPSILON_MIN);
         File file = file(modelNumber);
         if (file.exists()) {
             System.out.println("existing model found (" + modelNumber + ")");

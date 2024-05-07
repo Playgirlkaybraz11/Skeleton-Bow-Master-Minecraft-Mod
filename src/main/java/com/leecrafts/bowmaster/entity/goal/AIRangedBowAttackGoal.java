@@ -5,6 +5,7 @@ import com.leecrafts.bowmaster.capability.livingentity.LivingEntityCap;
 import com.leecrafts.bowmaster.entity.custom.SkeletonBowMasterEntity;
 import com.leecrafts.bowmaster.util.NeuralNetworkUtil;
 import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.Goal;
@@ -74,7 +75,18 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
 
             // actions
             double[] actionOutputs = NeuralNetworkUtil.computeOutput(network, observations);
-            boolean killerModeEnabled = false; // sounds cool, but it's only for testing
+
+            // random actions using epsilon
+            RandomSource random = this.mob.getRandom();
+            if (SkeletonBowMasterEntity.TRAINING) {
+                for (int i = 0; i < actionOutputs.length; i++) {
+                    if (random.nextDouble() < NeuralNetworkUtil.EPSILON) {
+                        actionOutputs[i] = random.nextDouble();
+                    }
+                }
+            }
+
+            boolean killerModeEnabled = true; // sounds cool, but it's only for testing
             if (!killerModeEnabled) {
                 handleLookDirection(actionOutputs[0], actionOutputs[1], pitchFacingTarget, yawFacingTarget);
                 handleRightClick(livingEntity, actionOutputs[2]);
