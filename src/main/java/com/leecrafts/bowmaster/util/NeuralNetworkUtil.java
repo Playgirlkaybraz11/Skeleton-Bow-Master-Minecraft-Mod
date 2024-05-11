@@ -1,8 +1,11 @@
 package com.leecrafts.bowmaster.util;
 
 import org.encog.engine.network.activation.ActivationSoftMax;
+import org.encog.engine.network.activation.ActivationTANH;
 import org.encog.ml.data.MLData;
 import org.encog.ml.data.basic.BasicMLData;
+import org.encog.neural.freeform.FreeformLayer;
+import org.encog.neural.freeform.FreeformNetwork;
 import org.encog.neural.networks.BasicNetwork;
 import org.encog.neural.pattern.FeedForwardPattern;
 import org.encog.persist.EncogDirectoryPersistence;
@@ -36,6 +39,33 @@ public class NeuralNetworkUtil {
 
         BasicNetwork network = (BasicNetwork) pattern.generate();
         network.reset();
+        return network;
+    }
+
+    private static FreeformNetwork createFreeformNetwork() {
+        FreeformNetwork network = new FreeformNetwork();
+        FreeformLayer inputLayer = network.createInputLayer(INPUT_SIZE);
+
+        FreeformLayer hiddenLayer = network.createLayer(32);
+        network.ConnectLayers(inputLayer, hiddenLayer, new ActivationTANH());
+
+        FreeformLayer lookDirectionLayer = network.createOutputLayer(2); // tanh
+        network.ConnectLayers(hiddenLayer, lookDirectionLayer, new ActivationTANH());
+
+        FreeformLayer rightClickLayer = network.createOutputLayer(2); // softmax
+        network.ConnectLayers(hiddenLayer, rightClickLayer, new ActivationSoftMax());
+
+        FreeformLayer WSLayer = network.createOutputLayer(3); // softmax
+        network.ConnectLayers(hiddenLayer, WSLayer, new ActivationSoftMax());
+
+        FreeformLayer ADLayer = network.createOutputLayer(3); // softmax
+        network.ConnectLayers(hiddenLayer, ADLayer, new ActivationSoftMax());
+
+        FreeformLayer jumpLayer = network.createOutputLayer(2); // softmax
+        network.ConnectLayers(hiddenLayer, jumpLayer, new ActivationSoftMax());
+
+        network.reset();
+
         return network;
     }
 

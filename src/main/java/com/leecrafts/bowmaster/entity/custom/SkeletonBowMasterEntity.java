@@ -33,7 +33,7 @@ public class SkeletonBowMasterEntity extends AbstractSkeleton {
 
     public SkeletonBowMasterEntity(EntityType<? extends AbstractSkeleton> pEntityType, Level pLevel) {
         super(pEntityType, pLevel);
-        network = NeuralNetworkUtil.loadOrCreateModel();
+        this.network = NeuralNetworkUtil.loadOrCreateModel();
         this.setPersistenceRequired();
     }
 
