@@ -5,7 +5,6 @@ import org.encog.engine.network.activation.ActivationTANH;
 import org.encog.ml.data.MLData;
 import org.encog.ml.data.basic.BasicMLData;
 import org.encog.neural.freeform.FreeformLayer;
-import org.encog.neural.freeform.FreeformNetwork;
 import org.encog.neural.networks.BasicNetwork;
 import org.encog.neural.pattern.FeedForwardPattern;
 import org.encog.persist.EncogDirectoryPersistence;
@@ -22,7 +21,7 @@ public class NeuralNetworkUtil {
 //    private static final String MODEL_DIRECTORY_PATH = "src/main/java/com/leecrafts/bowmaster/util/models";
     private static final String MODEL_BASE_NAME = "model";
     private static final int INPUT_SIZE = 9;
-    private static final int OUTPUT_SIZE = 10;
+    private static final int OUTPUT_SIZE = 12;
     private static double LEARNING_RATE = 0.1;
     private static final double GAMMA = 0.99;
     public static double EPSILON = 0.9;
@@ -42,34 +41,37 @@ public class NeuralNetworkUtil {
         return network;
     }
 
-    private static FreeformNetwork createFreeformNetwork() {
-        FreeformNetwork network = new FreeformNetwork();
+    public static MultiOutputFreeformNetwork createMultiOutputNetwork() {
+        MultiOutputFreeformNetwork network = new MultiOutputFreeformNetwork();
+
         FreeformLayer inputLayer = network.createInputLayer(INPUT_SIZE);
 
-        FreeformLayer hiddenLayer = network.createLayer(32);
-        network.ConnectLayers(inputLayer, hiddenLayer, new ActivationTANH());
+        FreeformLayer hiddenLayer1 = network.createLayer(32);
+//        FreeformLayer hiddenLayer2 = network.createLayer(64);
 
-        FreeformLayer lookDirectionLayer = network.createOutputLayer(2); // tanh
-        network.ConnectLayers(hiddenLayer, lookDirectionLayer, new ActivationTANH());
+        network.connectLayers(inputLayer, hiddenLayer1, new ActivationTANH(), 1.0, false);
+//        network.connectLayers(hiddenLayer1, hiddenLayer2, new ActivationTANH(), 1.0, false);
 
-        FreeformLayer rightClickLayer = network.createOutputLayer(2); // softmax
-        network.ConnectLayers(hiddenLayer, rightClickLayer, new ActivationSoftMax());
+        network.addContinuousOutputLayer(2); // Turn Head Action
+        network.addDiscreteOutputLayer(2); // Right Click Action
+        network.addDiscreteOutputLayer(3); // Movement (forward/backward) Action
+        network.addDiscreteOutputLayer(3); // Strafe (left/right) Action
+        network.addDiscreteOutputLayer(2); // Jump Action
 
-        FreeformLayer WSLayer = network.createOutputLayer(3); // softmax
-        network.ConnectLayers(hiddenLayer, WSLayer, new ActivationSoftMax());
-
-        FreeformLayer ADLayer = network.createOutputLayer(3); // softmax
-        network.ConnectLayers(hiddenLayer, ADLayer, new ActivationSoftMax());
-
-        FreeformLayer jumpLayer = network.createOutputLayer(2); // softmax
-        network.ConnectLayers(hiddenLayer, jumpLayer, new ActivationSoftMax());
+        network.connectToDiscreteOutputLayers(hiddenLayer1, new ActivationSoftMax()); // For discrete
+        network.connectToContinuousOutputLayers(hiddenLayer1, new ActivationTANH()); // For continuous
 
         network.reset();
-
         return network;
     }
 
     public static double[] computeOutput(BasicNetwork network, double[] input) {
+        MLData data = new BasicMLData(input);
+        MLData output = network.compute(data);
+        return output.getData();
+    }
+
+    public static double[] computeOutput(MultiOutputFreeformNetwork network, double[] input) {
         MLData data = new BasicMLData(input);
         MLData output = network.compute(data);
         return output.getData();
