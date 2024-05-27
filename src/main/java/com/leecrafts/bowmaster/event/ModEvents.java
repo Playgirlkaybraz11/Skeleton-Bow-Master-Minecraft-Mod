@@ -12,6 +12,7 @@ import com.leecrafts.bowmaster.entity.client.SkeletonBowMasterModel;
 import com.leecrafts.bowmaster.entity.custom.SkeletonBowMasterEntity;
 import com.leecrafts.bowmaster.packet.PacketHandler;
 import com.leecrafts.bowmaster.packet.ServerboundLivingEntityVelocityPacket;
+import com.leecrafts.bowmaster.util.MultiOutputFreeformNetwork;
 import com.leecrafts.bowmaster.util.NeuralNetworkUtil;
 import com.leecrafts.bowmaster.world.portal.ModTeleporter;
 import net.minecraft.core.BlockPos;
@@ -94,7 +95,7 @@ public class ModEvents {
                     !loser.level().isClientSide &&
                     event.getSource().getEntity() instanceof SkeletonBowMasterEntity winner) {
                 // update network from both the winner's and loser's data
-                BasicNetwork network = winner.getNetwork(); // winner and loser have the same network
+                MultiOutputFreeformNetwork network = winner.getNetwork(); // winner and loser have the same network
                 NeuralNetworkUtil.updateNetwork(
                         network, winner.getStates(), winner.getActions(), winner.getRewards());
                 NeuralNetworkUtil.updateNetwork(

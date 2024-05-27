@@ -4,13 +4,16 @@ import org.encog.engine.network.activation.ActivationSoftMax;
 import org.encog.engine.network.activation.ActivationTANH;
 import org.encog.ml.data.MLData;
 import org.encog.ml.data.basic.BasicMLData;
+import org.encog.neural.freeform.FreeformConnection;
 import org.encog.neural.freeform.FreeformLayer;
+import org.encog.neural.freeform.FreeformNeuron;
 import org.encog.neural.networks.BasicNetwork;
 import org.encog.neural.pattern.FeedForwardPattern;
 import org.encog.persist.EncogDirectoryPersistence;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -137,26 +140,70 @@ public class NeuralNetworkUtil {
         }
     }
 
-    public static void saveModel(BasicNetwork network) {
+    public static void updateNetwork(MultiOutputFreeformNetwork network,
+                                     ArrayList<double[]> states,
+                                     ArrayList<double[]> actionProbs,
+                                     ArrayList<Double> rewards) {
+        // Compute the returns for each time step
+        ArrayList<Double> returns = new ArrayList<>();
+        double accumulatedReturn = 0;
+        for (int i = rewards.size() - 1; i >= 0; i--) {
+            accumulatedReturn = rewards.get(i) + GAMMA * accumulatedReturn;
+            returns.add(0, accumulatedReturn);  // prepend to maintain order
+        }
+
+        // Traverse each time step
+        for (int t = 0; t < states.size(); t++) {
+            double[] state = states.get(t);
+            double[] probs = actionProbs.get(t);
+            double Gt = returns.get(t);
+
+            MLData input = new BasicMLData(state);
+            MLData output = network.compute(input);
+
+            // Assuming a method to get all neurons, including hidden and output layers
+            List<FreeformLayer> allLayers = network.getAllLayers();
+            for (FreeformLayer layer : allLayers) {
+                for (FreeformNeuron neuron : layer.getNeurons()) {
+                    List<FreeformConnection> connections = neuron.getOutputs();
+                    for (FreeformConnection connection : connections) {
+                        FreeformNeuron targetNeuron = connection.getTarget();
+                        double outputActivation = targetNeuron.getActivation();
+                        double inputActivation = neuron.getActivation();
+
+                        // Calculate the gradient
+                        double grad = - (Gt * (1 - probs[t]) * inputActivation); // Simplified gradient calculation
+                        // Update weights
+                        double oldWeight = connection.getWeight();
+                        double newWeight = oldWeight - LEARNING_RATE * grad;
+                        connection.setWeight(newWeight);
+                    }
+                }
+            }
+        }
+    }
+
+
+    public static void saveModel(MultiOutputFreeformNetwork network) {
         EncogDirectoryPersistence.saveObject(file(getNewestModelNumber() + 1), network);
     }
 
-    public static BasicNetwork loadOrCreateModel() {
+    public static MultiOutputFreeformNetwork loadOrCreateModel() {
         return loadOrCreateModel(getNewestModelNumber());
     }
 
-    public static BasicNetwork loadOrCreateModel(int modelNumber) {
+    public static MultiOutputFreeformNetwork loadOrCreateModel(int modelNumber) {
         // TODO consider learning rate decay
         // TODO consider epsilon decay
         EPSILON = Math.max(EPSILON_MAX - EPSILON_DECAY * (modelNumber + 1), EPSILON_MIN);
         File file = file(modelNumber);
         if (file.exists()) {
             System.out.println("existing model found (" + modelNumber + ")");
-            return (BasicNetwork) EncogDirectoryPersistence.loadObject(file);
+            return (MultiOutputFreeformNetwork) EncogDirectoryPersistence.loadObject(file);
         }
         else {
             System.out.println("no model found, so creating new one");
-            return createNetwork();
+            return createMultiOutputNetwork();
         }
     }
 

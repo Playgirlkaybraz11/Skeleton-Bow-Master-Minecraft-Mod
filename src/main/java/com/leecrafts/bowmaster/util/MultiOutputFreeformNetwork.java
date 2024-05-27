@@ -16,6 +16,7 @@ public class MultiOutputFreeformNetwork extends FreeformNetwork {
 
     public MultiOutputFreeformNetwork() {
 //        super();
+        this.hiddenLayers = new ArrayList<>();
         this.discreteOutputLayers = new ArrayList<>();
         this.continuousOutputLayers = new ArrayList<>();
     }

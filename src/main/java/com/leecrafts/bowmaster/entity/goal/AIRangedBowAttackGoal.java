@@ -3,6 +3,7 @@ package com.leecrafts.bowmaster.entity.goal;
 import com.leecrafts.bowmaster.capability.ModCapabilities;
 import com.leecrafts.bowmaster.capability.livingentity.LivingEntityCap;
 import com.leecrafts.bowmaster.entity.custom.SkeletonBowMasterEntity;
+import com.leecrafts.bowmaster.util.MultiOutputFreeformNetwork;
 import com.leecrafts.bowmaster.util.NeuralNetworkUtil;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
@@ -13,7 +14,6 @@ import net.minecraft.world.entity.monster.RangedAttackMob;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
 import net.minecraft.world.item.BowItem;
 import net.minecraft.world.phys.Vec3;
-import org.encog.neural.networks.BasicNetwork;
 
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -70,7 +70,7 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
             double yawFacingTarget = Math.atan2(-distanceNormalized.x, distanceNormalized.z); // in radians
 
             // observations
-            BasicNetwork network = this.mob.getNetwork();
+            MultiOutputFreeformNetwork network = this.mob.getNetwork();
             double[] observations = getObservations(livingEntity, distance, pitchFacingTarget, yawFacingTarget);
 
             // actions
@@ -86,29 +86,29 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
                 }
             }
 
-            boolean killerModeEnabled = true; // sounds cool, but it's only for testing
+            boolean killerModeEnabled = false; // sounds cool, but it's only for testing
             if (!killerModeEnabled) {
                 handleLookDirection(actionOutputs[0], actionOutputs[1], pitchFacingTarget, yawFacingTarget);
-                handleRightClick(livingEntity, actionOutputs[2]);
-                handleMovement(actionOutputs[3], actionOutputs[4], actionOutputs[5]);
+                handleRightClick(livingEntity, actionOutputs[2], actionOutputs[3]);
+                handleMovement(actionOutputs[4], actionOutputs[5], actionOutputs[6]);
             }
             else {
                 handleLookDirection(0.5, 0.5, pitchFacingTarget, yawFacingTarget);
                 spamArrows(livingEntity);
                 handleMovement(1, 0, 0);
             }
-            handleStrafing(actionOutputs[6], actionOutputs[7], actionOutputs[8]);
-            handleJump(actionOutputs[9]);
+            handleStrafing(actionOutputs[7], actionOutputs[8], actionOutputs[9]);
+            handleJump(actionOutputs[10], actionOutputs[11]);
 
             if (SkeletonBowMasterEntity.TRAINING) {
-                double[] logProbabilities = new double[actionOutputs.length];
-                for (int i = 0; i < actionOutputs.length; i++) {
-                    logProbabilities[i] = Math.log(actionOutputs[i]);
-                }
+//                double[] logProbabilities = new double[actionOutputs.length];
+//                for (int i = 0; i < actionOutputs.length; i++) {
+//                    logProbabilities[i] = Math.log(actionOutputs[i]);
+//                }
 
                 // update state, action, and reward storage
                 this.mob.storeStates(observations);
-                this.mob.storeActions(logProbabilities);
+                this.mob.storeActions(actionOutputs);
                 this.mob.storeRewards(-0.005);
             }
 
@@ -179,8 +179,8 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
         return Math.min(this.mob.getTicksUsingItem(), TICKS_PER_SECOND);
     }
 
-    private void handleRightClick(LivingEntity target, double output) {
-        boolean press = output > 0.5; // < 0.5 is not press, > 0.5 is press
+    private void handleRightClick(LivingEntity target, double rightClickProb, double noRightClickProb) {
+        boolean press = rightClickProb > noRightClickProb;
         if (press) {
             this.mob.startUsingItem(ProjectileUtil.getWeaponHoldingHand(this.mob, item -> item instanceof BowItem));
         }
@@ -195,32 +195,32 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
         }
     }
 
-    private void handleMovement(double forward, double backward, double neither) {
-        if (forward > backward && forward > neither) {
+    private void handleMovement(double forwardProb, double backwardProb, double neitherProb) {
+        if (forwardProb > backwardProb && forwardProb > neitherProb) {
             this.mob.forwardImpulse(1.0f);
-        } else if (backward > neither) {
+        } else if (backwardProb > neitherProb) {
             this.mob.forwardImpulse(-1.0f);
         }
     }
 
-    private void handleStrafing(double left, double right, double neither) {
+    private void handleStrafing(double leftProb, double rightProb, double neitherProb) {
         // I could use MoveControl#strafe, but there are some unwanted hardcoded behaviors
-        if (left > right && left > neither) {
+        if (leftProb > rightProb && leftProb > neitherProb) {
             this.mob.setXxa(1.0f);
-        } else if (right > neither) {
+        } else if (rightProb > neitherProb) {
             this.mob.setXxa(-1.0f);
         }
     }
 
-    private void handleJump(double output) {
-        if (output > 0.5) {
+    private void handleJump(double jumpProb, double noJumpProb) {
+        if (jumpProb > noJumpProb) {
             this.mob.getJumpControl().jump();
         }
     }
 
     private void handleLookDirection(double xRotOffset, double yRotOffset, double pitchFacingTarget, double yawFacingTarget) {
-        this.mob.setXRot((float) Mth.clamp(Math.toDegrees(pitchFacingTarget) + 90 * (yRotOffset * 2 - 1), -90, 90));
-        this.mob.setYRot((float) Math.toDegrees(normalizeAngle(yawFacingTarget + Math.PI * (xRotOffset * 2 - 1))));
+        this.mob.setXRot((float) Mth.clamp(Math.toDegrees(pitchFacingTarget) + 90 * xRotOffset, -90, 90));
+        this.mob.setYRot((float) Math.toDegrees(normalizeAngle(yawFacingTarget + Math.PI * yRotOffset)));
     }
 
     private void spamArrows(LivingEntity target) { // for testing

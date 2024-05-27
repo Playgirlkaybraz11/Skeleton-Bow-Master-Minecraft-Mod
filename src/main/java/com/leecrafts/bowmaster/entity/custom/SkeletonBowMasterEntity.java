@@ -1,6 +1,7 @@
 package com.leecrafts.bowmaster.entity.custom;
 
 import com.leecrafts.bowmaster.entity.goal.AIRangedBowAttackGoal;
+import com.leecrafts.bowmaster.util.MultiOutputFreeformNetwork;
 import com.leecrafts.bowmaster.util.NeuralNetworkUtil;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
@@ -17,7 +18,6 @@ import net.minecraft.world.entity.projectile.ProjectileUtil;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
-import org.encog.neural.networks.BasicNetwork;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -26,7 +26,7 @@ public class SkeletonBowMasterEntity extends AbstractSkeleton {
 
     public static final boolean TRAINING = true;
     protected boolean shouldForwardImpulse = false;
-    private final BasicNetwork network;
+    private final MultiOutputFreeformNetwork network;
     private final ArrayList<double[]> states = new ArrayList<>();
     private final ArrayList<double[]> actions = new ArrayList<>();
     private final ArrayList<Double> rewards = new ArrayList<>();
@@ -64,7 +64,7 @@ public class SkeletonBowMasterEntity extends AbstractSkeleton {
         this.shouldForwardImpulse = amount != 0;
     }
 
-    public BasicNetwork getNetwork() {
+    public MultiOutputFreeformNetwork getNetwork() {
         return this.network;
     }
 
