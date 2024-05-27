@@ -38,6 +38,15 @@ public class MultiOutputFreeformNetwork extends FreeformNetwork {
         return layer;
     }
 
+    public List<FreeformLayer> getAllLayers() {
+        List<FreeformLayer> list = new ArrayList<>();
+        list.add(this.inputLayer);
+        list.addAll(this.hiddenLayers);
+        list.addAll(this.discreteOutputLayers);
+        list.addAll(this.continuousOutputLayers);
+        return list;
+    }
+
     @Override
     public MLData compute(final MLData input) {
         // Set activations in the input layer
@@ -128,4 +137,5 @@ public class MultiOutputFreeformNetwork extends FreeformNetwork {
 
         return totalOutputCount;
     }
+
 }

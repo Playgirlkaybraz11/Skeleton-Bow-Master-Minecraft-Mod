@@ -144,22 +144,18 @@ public class NeuralNetworkUtil {
                                      ArrayList<double[]> states,
                                      ArrayList<double[]> actionProbs,
                                      ArrayList<Double> rewards) {
-        // Compute the returns for each time step
-        ArrayList<Double> returns = new ArrayList<>();
-        double accumulatedReturn = 0;
+        // cumulative rewards if not already provided
+        double[] cumulativeRewards = new double[rewards.size()];
+        double cumulative = 0;
         for (int i = rewards.size() - 1; i >= 0; i--) {
-            accumulatedReturn = rewards.get(i) + GAMMA * accumulatedReturn;
-            returns.add(0, accumulatedReturn);  // prepend to maintain order
+            cumulative = rewards.get(i) + cumulative * GAMMA;
+            cumulativeRewards[i] = cumulative;
         }
 
         // Traverse each time step
         for (int t = 0; t < states.size(); t++) {
-            double[] state = states.get(t);
             double[] probs = actionProbs.get(t);
-            double Gt = returns.get(t);
-
-            MLData input = new BasicMLData(state);
-            MLData output = network.compute(input);
+            double Gt = cumulativeRewards[t];
 
             // Assuming a method to get all neurons, including hidden and output layers
             List<FreeformLayer> allLayers = network.getAllLayers();
@@ -167,8 +163,6 @@ public class NeuralNetworkUtil {
                 for (FreeformNeuron neuron : layer.getNeurons()) {
                     List<FreeformConnection> connections = neuron.getOutputs();
                     for (FreeformConnection connection : connections) {
-                        FreeformNeuron targetNeuron = connection.getTarget();
-                        double outputActivation = targetNeuron.getActivation();
                         double inputActivation = neuron.getActivation();
 
                         // Calculate the gradient
