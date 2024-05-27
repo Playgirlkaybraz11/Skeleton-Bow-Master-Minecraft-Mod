@@ -145,7 +145,6 @@ dependencies {
     // http://www.gradle.org/docs/current/userguide/dependency_management.html
 
     implementation "org.encog:encog-core:${encog_version}"
-    implementation "com.github.neuroph:neuroph-core:${neuroph_version}"
 
 }
 
