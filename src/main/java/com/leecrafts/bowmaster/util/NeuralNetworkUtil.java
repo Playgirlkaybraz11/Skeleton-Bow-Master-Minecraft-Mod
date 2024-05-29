@@ -49,8 +49,8 @@ public class NeuralNetworkUtil {
 
         FreeformLayer inputLayer = network.createInputLayer(INPUT_SIZE);
 
-        FreeformLayer hiddenLayer1 = network.createLayer(32);
-//        FreeformLayer hiddenLayer2 = network.createLayer(64);
+        FreeformLayer hiddenLayer1 = network.addHiddenLayer(32);
+//        FreeformLayer hiddenLayer2 = network.createHiddenLayer(64);
 
         network.connectLayers(inputLayer, hiddenLayer1, new ActivationTANH(), 1.0, false);
 //        network.connectLayers(hiddenLayer1, hiddenLayer2, new ActivationTANH(), 1.0, false);
@@ -61,8 +61,8 @@ public class NeuralNetworkUtil {
         network.addDiscreteOutputLayer(3); // Strafe (left/right) Action
         network.addDiscreteOutputLayer(2); // Jump Action
 
-        network.connectToDiscreteOutputLayers(hiddenLayer1, new ActivationSoftMax()); // For discrete
         network.connectToContinuousOutputLayers(hiddenLayer1, new ActivationTANH()); // For continuous
+        network.connectToDiscreteOutputLayers(hiddenLayer1, new ActivationSoftMax()); // For discrete
 
         network.reset();
         return network;
@@ -237,6 +237,41 @@ public class NeuralNetworkUtil {
                     System.out.println("Weight[" + fromNeuron + "][" + toNeuron + "]: " + weight);
                 }
             }
+        }
+    }
+
+    public static void printWeights(MultiOutputFreeformNetwork network) {
+        // Get all layers, including input, hidden, and output layers
+        List<FreeformLayer> allLayers = network.getAllLayers(); // Ensure this method collects all layers
+
+        int layerIndex = 0;
+        for (FreeformLayer layer : allLayers) {
+            System.out.println("Layer " + layerIndex + ":");
+            int neuronIndex = 0;
+            for (FreeformNeuron neuron : layer.getNeurons()) {
+                // Check if the neuron is a bias neuron
+                String af = neuron.getInputSummation() != null ?
+                        "Activation Function = " + neuron.getInputSummation().getActivationFunction().getLabel() :
+                        "(no activation function)";
+                if (neuron.isBias()) {
+                    System.out.println("  Neuron " + neuronIndex + " (Bias): Activation = " + neuron.getActivation() + "; " + af);
+                } else {
+                    System.out.println("  Neuron " + neuronIndex + "(" + af + "):");
+                }
+
+                // Print all output connections and their weights
+                List<FreeformConnection> connections = neuron.getOutputs();
+                if (connections != null) {
+                    int connectionIndex = 0;
+                    for (FreeformConnection connection : connections) {
+                        System.out.println("    Connection " + connectionIndex + ": Weight = " + connection.getWeight());
+                        connectionIndex++;
+                    }
+                }
+
+                neuronIndex++;
+            }
+            layerIndex++;
         }
     }
 

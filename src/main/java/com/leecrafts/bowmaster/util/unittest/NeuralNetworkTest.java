@@ -1,12 +1,17 @@
 package com.leecrafts.bowmaster.util.unittest;
 
+import com.leecrafts.bowmaster.util.MultiOutputFreeformNetwork;
+import com.leecrafts.bowmaster.util.NeuralNetworkUtil;
 import org.encog.engine.network.activation.ActivationSoftMax;
-import org.encog.ml.data.MLData;
-import org.encog.ml.data.basic.BasicMLData;
+import org.encog.engine.network.activation.ActivationTANH;
+import org.encog.neural.freeform.FreeformConnection;
+import org.encog.neural.freeform.FreeformLayer;
+import org.encog.neural.freeform.FreeformNeuron;
 import org.encog.neural.networks.BasicNetwork;
 import org.encog.neural.pattern.FeedForwardPattern;
 
 import java.util.ArrayList;
+import java.util.Random;
 
 public class NeuralNetworkTest {
 
@@ -24,22 +29,33 @@ public class NeuralNetworkTest {
         System.arraycopy(weightsToAssign, 0, weights, 0, weights.length);
         return network;
     }
+    private static MultiOutputFreeformNetwork createToyMultiOutputFreeformNetwork() {
+        MultiOutputFreeformNetwork network = new MultiOutputFreeformNetwork();
 
-    private static SpookyNetwork createSpookyToyNetwork() {
-//        FreeformNetwork network = new FreeformNetwork();
-//        FreeformLayer inputLayer = network.createInputLayer(2);
-//        FreeformLayer hiddenLayer = network.createLayer(2);
-//        network.ConnectLayers(inputLayer, hiddenLayer, new ActivationTANH());
-//        FreeformLayer lookDirectionLayer = network.createLayer(2); // tanh
-//        network.ConnectLayers(hiddenLayer, lookDirectionLayer, new ActivationTANH());
-//        FreeformLayer rightClickLayer = network.createLayer(2); // softmax
-//        network.connectLayers(hiddenLayer, rightClickLayer, new ActivationSoftMax(), 0, false);
+        FreeformLayer inputLayer = network.createInputLayer(3);
+
+        FreeformLayer hiddenLayer1 = network.addHiddenLayer(2);
+
+        network.connectLayers(inputLayer, hiddenLayer1, new ActivationTANH(), 1.0, false);
+
+        network.addContinuousOutputLayer(2); // Turn Head Action
+        network.addDiscreteOutputLayer(3); // Strafe (left/right) Action
+        network.addDiscreteOutputLayer(2); // Jump Action
+
+        network.connectToContinuousOutputLayers(hiddenLayer1, new ActivationTANH()); // For continuous
+        network.connectToDiscreteOutputLayers(hiddenLayer1, new ActivationSoftMax()); // For discrete
+
+        Random r = new Random();
+        for (FreeformNeuron f : inputLayer.getNeurons()) {
+            for (FreeformConnection c : f.getOutputs()) {
+                c.setWeight(r.nextFloat());
+            }
+        }
 //        network.reset();
-
-        return new SpookyNetwork();
+        return network;
     }
 
-    public static void test1() {
+    private static void test1() {
         BasicNetwork network = createToyNetwork();
         ArrayList<double[]> states = new ArrayList<>();
         states.add(new double[] {-2, 1});
@@ -56,25 +72,14 @@ public class NeuralNetworkTest {
         System.out.println(network.dumpWeights());
     }
 
-    public static void test2() {
-        SpookyNetwork network = createSpookyToyNetwork();
-        double[] input = {0.2, -0.7};
-        MLData inputData = new BasicMLData(input);
-        MLData outputData = network.computeAllOutputs(inputData);
-        System.out.println(outputData.size());
-        for (double d: outputData.getData()) {
-            System.out.println(d);
-        }
-        System.out.println("**");
-        double[] lookDirectionOutput = new double[2];
-        double[] rightClickOutput = new double[2];
-        System.arraycopy(outputData.getData(), 0, lookDirectionOutput, 0, 2);
-        System.arraycopy(outputData.getData(), 2, rightClickOutput, 0, 2);
-        for (double d: lookDirectionOutput) {
-            System.out.println(d);
-        }
-        for (double d: rightClickOutput) {
-            System.out.println(d);
+    private static void test2() {
+        MultiOutputFreeformNetwork network = createToyMultiOutputFreeformNetwork();
+        double[] observations = new double[] {-.5, 0.7, 1};
+        double[] outputs = NeuralNetworkUtil.computeOutput(network, observations);
+
+        NeuralNetworkUtil.printWeights(network);
+        for (int i = 0; i < outputs.length; i++) {
+            System.out.println(outputs[i]);
         }
     }
 

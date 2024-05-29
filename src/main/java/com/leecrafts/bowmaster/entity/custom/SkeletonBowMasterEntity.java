@@ -26,14 +26,16 @@ public class SkeletonBowMasterEntity extends AbstractSkeleton {
 
     public static final boolean TRAINING = true;
     protected boolean shouldForwardImpulse = false;
-    private final MultiOutputFreeformNetwork network;
+    private MultiOutputFreeformNetwork network;
     private final ArrayList<double[]> states = new ArrayList<>();
     private final ArrayList<double[]> actions = new ArrayList<>();
     private final ArrayList<Double> rewards = new ArrayList<>();
 
     public SkeletonBowMasterEntity(EntityType<? extends AbstractSkeleton> pEntityType, Level pLevel) {
         super(pEntityType, pLevel);
-        this.network = NeuralNetworkUtil.loadOrCreateModel();
+        if (!pLevel.isClientSide) {
+            this.network = NeuralNetworkUtil.loadOrCreateModel();
+        }
         this.setPersistenceRequired();
     }
 

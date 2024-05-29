@@ -71,6 +71,7 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
 
             // observations
             MultiOutputFreeformNetwork network = this.mob.getNetwork();
+            NeuralNetworkUtil.printWeights(network);
             double[] observations = getObservations(livingEntity, distance, pitchFacingTarget, yawFacingTarget);
 
             // actions
@@ -179,7 +180,14 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
         return Math.min(this.mob.getTicksUsingItem(), TICKS_PER_SECOND);
     }
 
+    private void handleLookDirection(double xRotOffset, double yRotOffset, double pitchFacingTarget, double yawFacingTarget) {
+        System.out.println("xRotOffset: " + xRotOffset + ", yRotOffset: " + yRotOffset);
+        this.mob.setXRot((float) Mth.clamp(Math.toDegrees(pitchFacingTarget) + 90 * xRotOffset, -90, 90));
+        this.mob.setYRot((float) Math.toDegrees(normalizeAngle(yawFacingTarget + Math.PI * yRotOffset)));
+    }
+
     private void handleRightClick(LivingEntity target, double rightClickProb, double noRightClickProb) {
+        System.out.println("rightClickProb: " + rightClickProb + ", noRightClickProb: " + noRightClickProb);
         boolean press = rightClickProb > noRightClickProb;
         if (press) {
             this.mob.startUsingItem(ProjectileUtil.getWeaponHoldingHand(this.mob, item -> item instanceof BowItem));
@@ -196,6 +204,7 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
     }
 
     private void handleMovement(double forwardProb, double backwardProb, double neitherProb) {
+        System.out.println("forwardProb: " + forwardProb + ", backwardProb: " + backwardProb + ", neitherProb: " + neitherProb);
         if (forwardProb > backwardProb && forwardProb > neitherProb) {
             this.mob.forwardImpulse(1.0f);
         } else if (backwardProb > neitherProb) {
@@ -204,6 +213,7 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
     }
 
     private void handleStrafing(double leftProb, double rightProb, double neitherProb) {
+        System.out.println("leftProb: " + leftProb + ", rightProb: " + rightProb + ", neitherProb: " + neitherProb);
         // I could use MoveControl#strafe, but there are some unwanted hardcoded behaviors
         if (leftProb > rightProb && leftProb > neitherProb) {
             this.mob.setXxa(1.0f);
@@ -213,14 +223,10 @@ public class AIRangedBowAttackGoal<T extends SkeletonBowMasterEntity & RangedAtt
     }
 
     private void handleJump(double jumpProb, double noJumpProb) {
+        System.out.println("jumpProb: " + jumpProb + ", noJumpProb: " + noJumpProb);
         if (jumpProb > noJumpProb) {
             this.mob.getJumpControl().jump();
         }
-    }
-
-    private void handleLookDirection(double xRotOffset, double yRotOffset, double pitchFacingTarget, double yawFacingTarget) {
-        this.mob.setXRot((float) Mth.clamp(Math.toDegrees(pitchFacingTarget) + 90 * xRotOffset, -90, 90));
-        this.mob.setYRot((float) Math.toDegrees(normalizeAngle(yawFacingTarget + Math.PI * yRotOffset)));
     }
 
     private void spamArrows(LivingEntity target) { // for testing
